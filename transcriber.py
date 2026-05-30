@@ -33,17 +33,17 @@ def extract_audio(video_path, audio_path="temp_audio.wav"):
 
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
-        # Check if the failure is due to the video having no audio stream
+                                                                         
         if "does not contain any stream" in result.stderr or "Output file does not contain any stream" in result.stderr:
             print("[*] No audio stream detected in video. Generating a silent audio track...")
             import re
-            duration = 10.0  # default fallback duration
+            duration = 10.0                             
             match = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", result.stderr)
             if match:
                 hours, minutes, seconds = match.groups()
                 duration = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
             
-            # Generate silent WAV of the exact duration
+                                                       
             silent_cmd = [
                 ffmpeg_bin, "-y",
                 "-f", "lavfi",
@@ -61,7 +61,7 @@ def extract_audio(video_path, audio_path="temp_audio.wav"):
 def transcribe_audio(audio_path, model_size="small", language="es"):
     """Transcribes audio using faster-whisper on CPU with int8 quantization."""
     print(f"[*] Loading whisper model '{model_size}' on CPU (int8)...")
-    # compute_type="int8" is lightweight and optimized for CPU
+                                                              
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
     
     print(f"[*] Transcribing {audio_path}...")
@@ -73,7 +73,7 @@ def transcribe_audio(audio_path, model_size="small", language="es"):
     
     transcription_data = []
     
-    # Iterate through segments and build structure
+                                                  
     for segment in segments:
         segment_words = []
         if segment.words:
@@ -102,7 +102,7 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
     if provider == "openai":
         url = api_url or "https://api.openai.com/v1/audio/transcriptions"
         model = "whisper-1"
-    else: # groq
+    else:       
         url = api_url or "https://api.groq.com/openai/v1/audio/transcriptions"
         model = "whisper-large-v3"
         
@@ -152,7 +152,7 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
             segment_end = segment["end"]
             segment_words = []
             
-            # Group top-level words into this segment by timestamp
+                                                                  
             for w in all_words:
                 if w["start"] >= segment_start and w["end"] <= segment_end + 0.1:
                     segment_words.append({
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     path = sys.argv[1]
     temp_audio = "temp_audio.wav"
     
-    # If it's a video, extract audio first
+                                          
     if not path.endswith(".wav"):
         audio_path = extract_audio(path, temp_audio)
     else:

@@ -8,7 +8,7 @@ def analyze_audio_energy(audio_path, segment_duration=1.0):
     print(f"[*] Analyzing audio energy for {audio_path} using librosa...")
     try:
         y, sr = librosa.load(audio_path, sr=16000)
-        # Calculate RMS energy
+                              
         hop_length = int(sr * segment_duration)
         rms = librosa.feature.rms(y=y, frame_length=hop_length, hop_length=hop_length)[0]
         times = librosa.frames_to_time(np.arange(len(rms)), sr=sr, hop_length=hop_length)
@@ -26,7 +26,7 @@ def select_best_moments_with_llm(transcription_data, provider="ollama", api_url=
     print(f"[*] Analyzing transcription for key moments using LLM ({provider} - {model})...")
 
     
-    # Simplify transcript into a readable context with timestamps
+                                                                 
     simplified_transcript = []
     for seg in transcription_data:
         simplified_transcript.append(f"[{seg['start']:.2f}s - {seg['end']:.2f}s]: {seg['text']}")
@@ -84,7 +84,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
             print(f"[!] Ollama connection error: {e}. Falling back to default segment (first 40 seconds).")
             return [{"start": 0.0, "end": 40.0, "hook_title": "Clip de Muestra", "explanation": "Fallback"}]
     else:
-        # OpenAI or compatible API
+                                  
         headers = {
             "Authorization": f"Bearer {api_key or ''}",
             "Content-Type": "application/json"
@@ -107,26 +107,26 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
             return [{"start": 0.0, "end": 40.0, "hook_title": "Clip de Muestra", "explanation": "Fallback"}]
 
     try:
-        # Parse the JSON response
+                                 
         print(f"[*] Raw LLM Response:\n{response_text}")
         data = json.loads(response_text)
         
-        # If the LLM returned a dict containing a 'clips' key
+                                                             
         if isinstance(data, dict) and "clips" in data:
             data = data["clips"]
             
-        # If the LLM returned a dict with nested clip dicts (e.g. {"clip1": {...}, "clip2": {...}})
+                                                                                                   
         if isinstance(data, dict):
             nested_clips = [v for v in data.values() if isinstance(v, dict) and any(k in v for k in ["start", "end", "start_time", "end_time", "inicio", "fin"])]
             if nested_clips:
                 data = nested_clips
                 
-        # If the LLM returned a single clip dict instead of a list
+                                                                  
         if isinstance(data, dict):
             if any(k in data for k in ["start", "end", "start_time", "end_time", "inicio", "fin"]):
                 data = [data]
             else:
-                # If it's a dict but doesn't have start/end, look for any list inside
+                                                                                     
                 for val in data.values():
                     if isinstance(val, list):
                         data = val
@@ -136,7 +136,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
         if not isinstance(data, list):
             data = [data]
             
-        # Robust key normalization
+                                  
         normalized_data = []
         for item in data:
             if not isinstance(item, dict):
@@ -144,7 +144,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
             
             normalized_item = {}
             
-            # Map start time
+                            
             for start_key in ["start", "start_time", "startTime", "inicio"]:
                 if start_key in item:
                     try:
@@ -155,7 +155,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
             if "start" not in normalized_item:
                 normalized_item["start"] = 0.0
                 
-            # Map end time
+                          
             for end_key in ["end", "end_time", "endTime", "fin"]:
                 if end_key in item:
                     try:
@@ -166,7 +166,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
             if "end" not in normalized_item:
                 normalized_item["end"] = 10.0
                 
-            # Map title
+                       
             for title_key in ["hook_title", "title", "titulo", "título", "hookTitle"]:
                 if title_key in item:
                     normalized_item["hook_title"] = str(item[title_key])
@@ -174,21 +174,21 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
             if "hook_title" not in normalized_item:
                 normalized_item["hook_title"] = "Clip Viral"
                 
-            # Map description
+                             
             for desc_key in ["social_description", "socialDescription", "description", "descripcion", "descripción", "copy", "caption"]:
                 if desc_key in item:
                     normalized_item["social_description"] = str(item[desc_key])
                     break
             if "social_description" not in normalized_item:
                 normalized_item["social_description"] = item.get("explanation", "Mira este increíble momento.")
-            # Programmatic Duration Expander:
-            # If the clip selected by the LLM is shorter than 30 seconds, expand it symmetrically
-            # to provide context and avoid cutting off the speaker's sentence.
+                                             
+                                                                                                 
+                                                                              
             MIN_DURATION = 30.0
             clip_duration = normalized_item["end"] - normalized_item["start"]
             if clip_duration < MIN_DURATION:
                 diff = MIN_DURATION - clip_duration
-                # Expand backward and forward
+                                             
                 new_start = max(0.0, normalized_item["start"] - (diff / 2))
                 new_end = normalized_item["end"] + (diff / 2)
                 normalized_item["start"] = round(new_start, 2)
@@ -201,12 +201,12 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
 
     except Exception as e:
         print(f"[!] Error parsing LLM response as JSON: {e}")
-        # Let's try to extract JSON array using regex or simple search
+                                                                      
         try:
             start_idx = response_text.find("[")
             end_idx = response_text.rfind("]") + 1
             if start_idx != -1 and end_idx != -1:
-                # We could attempt to parse the substring, but returning a safe fallback is cleaner
+                                                                                                   
                 pass
         except:
             pass
@@ -214,7 +214,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
 
 
 if __name__ == "__main__":
-    # Test stub
+               
     dummy_transcript = [
         {"start": 0.0, "end": 5.0, "text": "Hola a todos, hoy vamos a hablar de cómo el éxito no ocurre de la noche a la mañana."},
         {"start": 5.0, "end": 15.0, "text": "Mucha gente piensa que los millonarios tuvieron suerte, pero la verdad es otra."},

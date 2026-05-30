@@ -7,7 +7,7 @@ from analyzer import select_best_moments_with_llm
 from subtitle_generator import generate_ass_subtitles
 from video_editor import process_video_clip
 
-# Streamlit App Styling
+                       
 st.set_page_config(
     page_title="Auto-Clipper AI",
     page_icon="🎬",
@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom premium styling (dark theme, glassmorphism, nice gradients)
+                                                                    
 st.markdown("""
 <style>
     .main-title {
@@ -45,7 +45,7 @@ st.markdown("""
 st.markdown('<div class="main-title">🎬 Auto-Clipper AI</div>', unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #888;'>Corta, re-encuadra a 9:16 y genera subtítulos dinámicos de forma automática para TikTok y Shorts.</p>", unsafe_allow_html=True)
 
-# Sidebar configurations
+                        
 st.sidebar.header("⚙️ Configuración del Sistema")
 
 whisper_model = st.sidebar.selectbox(
@@ -81,7 +81,7 @@ if provider in ["openai", "groq"]:
 default_model = "llama3.2:3b" if provider == "ollama" else ("gpt-4o-mini" if provider == "openai" else "llama-3.3-70b-versatile")
 llm_model = st.sidebar.text_input("Modelo de IA", default_model)
 
-# Set defaults
+              
 api_url = "http://localhost:11434/api/generate"
 if provider == "groq":
     api_url = "https://api.groq.com/openai/v1/chat/completions"
@@ -92,7 +92,7 @@ elif provider == "openai":
 else:
     resolved_provider = "ollama"
 
-# Main Form
+           
 col1, col2 = st.columns([1, 1])
 
 with col1:
@@ -101,7 +101,7 @@ with col1:
     
     st.info("💡 Consejo: Una vez subido el video, haz clic en 'Comenzar Pipeline' para procesar.")
     
-    # We can also let the user enter a local file path
+                                                      
     local_path = st.text_input("O introduce la ruta de un archivo local (más rápido):")
 
 with col2:
@@ -111,12 +111,12 @@ with col2:
     status_area = st.empty()
     progress_bar = st.progress(0)
 
-# Execution Flow
+                
 if process_btn:
     video_to_process = ""
     
     if uploaded_file is not None:
-        # Save uploaded file to temp path
+                                         
         temp_uploaded_path = "temp_uploaded_video.mp4"
         with open(temp_uploaded_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
@@ -136,17 +136,17 @@ if process_btn:
         temp_audio = os.path.join(temp_dir, "extracted_audio.wav")
         
         try:
-            # Step 1: Extract Audio
+                                   
             status_area.write("⏳ Paso 1: Extrayendo audio del video...")
             progress_bar.progress(10)
             extract_audio(video_to_process, temp_audio)
             
-            # Step 2: Transcribe
+                                
             if use_cloud_transcription and provider in ["groq", "openai"] and api_key:
                 status_area.write(f"⏳ Paso 2: Transcribiendo el audio en la nube con {provider} (ultra rápido)...")
                 progress_bar.progress(30)
                 from transcriber import transcribe_audio_cloud
-                # For transcription we do not use the Chat Completion URL, let transcribe_audio_cloud handle default URLs
+                                                                                                                         
                 trans_api_url = None
                 if provider == "openai" and api_url and "completions" not in api_url:
                     trans_api_url = api_url
@@ -157,7 +157,7 @@ if process_btn:
                 transcription_data = transcribe_audio(temp_audio, model_size=whisper_model, language=lang)
 
             
-            # Step 3: Analyze Moments
+                                     
             status_area.write("⏳ Paso 3: Identificando los mejores momentos con IA...")
             progress_bar.progress(60)
             
@@ -172,7 +172,7 @@ if process_btn:
             status_area.write(f"✅ Se encontraron {len(clips)} momentos virales. Creando los videos...")
             progress_bar.progress(75)
             
-            # Step 4: Video Editing
+                                   
             for idx, clip in enumerate(clips):
                 start = clip["start"]
                 end = clip["end"]
@@ -182,18 +182,18 @@ if process_btn:
                 clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
                 clip_output_path = os.path.join(output_dir, clip_output_name)
                 
-                # Subtitles
+                           
                 ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
                 generate_ass_subtitles(transcription_data, start, end, ass_path)
                 
-                # Editor
+                        
                 status_area.write(f"🎬 Procesando video {idx+1}/{len(clips)}: '{clip.get('hook_title')}'...")
                 process_video_clip(video_to_process, start, end, ass_path, clip_output_path)
                 
             progress_bar.progress(100)
             status_area.success("🎉 ¡Todo listo! Clips creados correctamente.")
             
-            # Display results
+                             
             st.write("---")
             st.subheader("🎉 Clips Creados")
             
@@ -209,7 +209,7 @@ if process_btn:
                         st.markdown(f"### {title}")
                         st.video(clip_path)
                         
-                        # Display AI-generated human copywriting/caption
+                                                                        
                         social_desc = clip.get("social_description", "¡Mira este clip!")
                         st.info(f"✍️ **Copy sugerido para TikTok/Shorts:**\n\n{social_desc}")
                         

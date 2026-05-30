@@ -24,14 +24,14 @@ def main():
         print(f"[!] Error: El archivo de video {args.video_path} no existe.")
         return
 
-    # Presets for Groq provider
+                               
     provider = args.provider
     api_url = args.api_url
     api_key = args.api_key
     llm_model = args.llm_model
 
     if provider == "groq":
-        provider = "openai"  # Groq utilizes standard OpenAI API format
+        provider = "openai"                                            
         if api_url == "http://localhost:11434/api/generate":
             api_url = "https://api.groq.com/openai/v1/chat/completions"
         if llm_model == "llama3.2:3b":
@@ -49,13 +49,13 @@ def main():
     temp_audio = os.path.join(temp_dir, "extracted_audio.wav")
     
     try:
-        # Step 1: Extract audio
+                               
         extract_audio(args.video_path, temp_audio)
         
-        # Step 2: Transcribe
+                            
         transcription_data = transcribe_audio(temp_audio, model_size=args.model, language=args.lang)
         
-        # Step 3: Analyze and select moments
+                                            
         clips = select_best_moments_with_llm(
             transcription_data,
             provider=provider,
@@ -68,28 +68,28 @@ def main():
         print(f"[*] Se identificaron {len(clips)} momentos para procesar:")
         print(json.dumps(clips, indent=2, ensure_ascii=False))
         
-        # Step 4: Process each clip
+                                   
         for idx, clip in enumerate(clips):
             start = clip["start"]
             end = clip["end"]
             title = clip.get("hook_title", f"clip_{idx+1}").replace(" ", "_").lower()
             
-            # Clean filename
+                            
             safe_title = "".join(c for c in title if c.isalnum() or c in ("_", "-"))
             clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
             clip_output_path = os.path.join(args.output_dir, clip_output_name)
             
-            # Generate ASS subtitles for this clip
+                                                  
             ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
             generate_ass_subtitles(transcription_data, start, end, ass_path)
             
-            # Process video clip with FFmpeg
+                                            
             process_video_clip(args.video_path, start, end, ass_path, clip_output_path)
             
         print(f"\n[+] Proceso completado con éxito. Clips guardados en: {args.output_dir}")
         
     finally:
-        # Clean up temporary directory
+                                      
         if os.path.exists(temp_dir):
             print("[*] Limpiando archivos temporales...")
             shutil.rmtree(temp_dir)

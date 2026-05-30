@@ -24,21 +24,21 @@ def process_video_clip(video_path, start_time, end_time, ass_path, output_path, 
     print(f"[*] Processing clip: {start_time}s to {end_time}s (duration: {duration:.2f}s)...")
     
 
-    # Build filter chain:
-    # 1. Crop to 9:16 aspect ratio center: crop=ih*9/16:ih
-    # 2. Scale up/down to 1080x1920
-    # 3. Burn subtitles
+                         
+                                                          
+                                   
+                       
     
     filter_chain = f"crop=ih*9/16:ih:(iw-ih*9/16)/2:0,scale=1080:1920"
     
-    # Optional dynamic zoom: subtle pulsing zoom using scale and zoompan
-    # (keeps it simple and stable on modest CPUs)
+                                                                        
+                                                 
     if zoom_effect:
-        # A simple zoom script that cuts back and forth slightly or does a slow zoom in
-        # For simplicity and speed on CPU, we can alternate scale between 100% and 110% at regular intervals
-        # Let's use a subtle zoompan filter:
-        # zoompan=z='min(zoom+0.0015,1.1)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'
-        # But zoompan can be performance heavy, so we make it optional.
+                                                                                       
+                                                                                                            
+                                            
+                                                                                        
+                                                                       
         pass
     if ass_path and os.path.exists(ass_path):
         escaped_ass_path = ass_path.replace("\\", "/").replace(":", "\\:")
@@ -53,8 +53,8 @@ def process_video_clip(video_path, start_time, end_time, ass_path, output_path, 
         "-i", video_path,
         "-vf", filter_chain,
         "-c:v", "libx264",
-        "-preset", "veryfast",  # Fast compression, light on CPU
-        "-crf", "22",           # Decent quality
+        "-preset", "veryfast",                                  
+        "-crf", "22",                           
         "-c:a", "aac",
         "-b:a", "192k",
         output_path
@@ -73,5 +73,5 @@ def process_video_clip(video_path, start_time, end_time, ass_path, output_path, 
     return output_path
 
 if __name__ == "__main__":
-    # Test script if called directly
+                                    
     pass
