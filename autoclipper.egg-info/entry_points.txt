@@ -1,2 +1,0 @@
-[console_scripts]
-autoclipper = main:main

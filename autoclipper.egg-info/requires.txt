@@ -1,7 +1,0 @@
-faster-whisper
-librosa
-requests
-numpy
-soundfile
-imageio-ffmpeg
-streamlit
