@@ -1,0 +1,12 @@
+analyzer.py
+main.py
+setup.py
+subtitle_generator.py
+transcriber.py
+video_editor.py
+autoclipper.egg-info/PKG-INFO
+autoclipper.egg-info/SOURCES.txt
+autoclipper.egg-info/dependency_links.txt
+autoclipper.egg-info/entry_points.txt
+autoclipper.egg-info/requires.txt
+autoclipper.egg-info/top_level.txt
