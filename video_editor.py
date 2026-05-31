@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-import imageio_ffmpeg
 
 def get_ffmpeg_path():
     """Resolves path to FFmpeg strictly using imageio-ffmpeg."""
@@ -13,6 +12,7 @@ def get_ffmpeg_path():
                 if file.startswith("ffmpeg") and file.endswith(".exe"):
                     return os.path.join(root, file)
                     
+    import imageio_ffmpeg
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 def process_video_clip(video_path, start_time, end_time, ass_path, output_path, zoom_effect=False):

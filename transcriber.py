@@ -5,7 +5,6 @@ from faster_whisper import WhisperModel
 def get_ffmpeg_path():
     """Resolves path to FFmpeg strictly using imageio-ffmpeg."""
     import sys
-    import imageio_ffmpeg
     
     # Si estamos corriendo como .exe empaquetado por PyInstaller
     if getattr(sys, 'frozen', False):
@@ -14,6 +13,7 @@ def get_ffmpeg_path():
                 if file.startswith("ffmpeg") and file.endswith(".exe"):
                     return os.path.join(root, file)
                     
+    import imageio_ffmpeg
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 def extract_audio(video_path, audio_path="temp_audio.wav"):
