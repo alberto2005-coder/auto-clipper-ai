@@ -7,3 +7,4 @@
 /venv
 /output_clips_gui
 *.exe
+*.spec
