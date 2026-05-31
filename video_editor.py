@@ -1,20 +1,19 @@
 import os
 import subprocess
+import sys
+import imageio_ffmpeg
 
 def get_ffmpeg_path():
-    """Resolves path to FFmpeg: local, imageio-ffmpeg package, or system PATH."""
-    local_paths = ["ffmpeg.exe", "bin/ffmpeg.exe", "./ffmpeg", "./bin/ffmpeg"]
-    for path in local_paths:
-        if os.path.exists(path):
-            return os.path.abspath(path)
-    try:
-        import imageio_ffmpeg
-        path = imageio_ffmpeg.get_ffmpeg_exe()
-        if path:
-            return path
-    except ImportError:
-        pass
-    return "ffmpeg"
+    """Resolves path to FFmpeg strictly using imageio-ffmpeg."""
+
+    # Si estamos corriendo como .exe empaquetado por PyInstaller
+    if getattr(sys, 'frozen', False):
+        for root, dirs, files in os.walk(sys._MEIPASS):
+            for file in files:
+                if file.startswith("ffmpeg") and file.endswith(".exe"):
+                    return os.path.join(root, file)
+                    
+    return imageio_ffmpeg.get_ffmpeg_exe()
 
 def process_video_clip(video_path, start_time, end_time, ass_path, output_path, zoom_effect=False):
     """
