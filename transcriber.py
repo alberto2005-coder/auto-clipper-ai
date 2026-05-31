@@ -1,5 +1,7 @@
 import os
 import subprocess
+import tempfile
+import uuid
 from faster_whisper import WhisperModel
 
 def get_ffmpeg_path():
@@ -32,17 +34,15 @@ def extract_audio(video_path, audio_path="temp_audio.wav"):
 
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
-                                                                         
         if "does not contain any stream" in result.stderr or "Output file does not contain any stream" in result.stderr:
             print("[*] No audio stream detected in video. Generating a silent audio track...")
             import re
-            duration = 10.0                             
+            duration = 10.0
             match = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", result.stderr)
             if match:
                 hours, minutes, seconds = match.groups()
                 duration = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
-            
-                                                       
+
             silent_cmd = [
                 ffmpeg_bin, "-y",
                 "-f", "lavfi",
@@ -56,23 +56,34 @@ def extract_audio(video_path, audio_path="temp_audio.wav"):
     return audio_path
 
 
+def compress_audio_for_transcription(source_path, target_path, bitrate="32k"):
+    """Compress audio to MP3 for cloud transcription uploads."""
+    ffmpeg_bin = get_ffmpeg_path()
+    cmd = [
+        ffmpeg_bin, "-y",
+        "-i", source_path,
+        "-ac", "1",
+        "-ar", "16000",
+        "-b:a", bitrate,
+        target_path
+    ]
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    return target_path
+
 
 def transcribe_audio(audio_path, model_size="small", language="es"):
     """Transcribes audio using faster-whisper on CPU with int8 quantization."""
     print(f"[*] Loading whisper model '{model_size}' on CPU (int8)...")
-                                                              
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
-    
+
     print(f"[*] Transcribing {audio_path}...")
     segments, info = model.transcribe(
         audio_path,
         language=language,
         word_timestamps=True
     )
-    
+
     transcription_data = []
-    
-                                                  
     for segment in segments:
         segment_words = []
         if segment.words:
@@ -83,15 +94,16 @@ def transcribe_audio(audio_path, model_size="small", language="es"):
                     "end": word.end,
                     "probability": word.probability
                 })
-        
+
         transcription_data.append({
             "start": segment.start,
             "end": segment.end,
             "text": segment.text.strip(),
             "words": segment_words
         })
-        
+
     return transcription_data
+
 
 def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, language="es"):
     """Transcribes audio using Groq or OpenAI's cloud Whisper API (extremely fast, low resources)."""
@@ -107,25 +119,29 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
         
     headers = {"Authorization": f"Bearer {api_key}"}
     
+    max_upload_mb = 24
     file_size_mb = os.path.getsize(audio_path) / (1024 * 1024)
     upload_path = audio_path
     temp_mp3 = None
-    
-    if file_size_mb > 24:
-        print(f"[*] Audio file size ({file_size_mb:.2f}MB) exceeds 24MB. Compressing to MP3...")
-        import tempfile
-        temp_mp3 = os.path.join(tempfile.gettempdir(), "temp_compressed.mp3")
-        ffmpeg_bin = get_ffmpeg_path()
-        cmd = [
-            ffmpeg_bin, "-y",
-            "-i", audio_path,
-            "-codec:a", "libmp3lame",
-            "-b:a", "64k",
-            temp_mp3
-        ]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+    if file_size_mb > max_upload_mb:
+        print(f"[*] Audio file size ({file_size_mb:.2f} MB) exceeds {max_upload_mb} MB. Compressing to MP3...")
+        temp_mp3 = os.path.join(tempfile.gettempdir(), f"temp_compressed_{uuid.uuid4().hex}.mp3")
+        for bitrate in ["32k", "16k", "8k"]:
+            compress_audio_for_transcription(audio_path, temp_mp3, bitrate=bitrate)
+            file_size_mb = os.path.getsize(temp_mp3) / (1024 * 1024)
+            print(f"[*] Compressed audio size with {bitrate}: {file_size_mb:.2f} MB")
+            if file_size_mb <= max_upload_mb:
+                break
+
+        if file_size_mb > max_upload_mb:
+            raise RuntimeError(
+                f"El audio comprimido sigue siendo demasiado grande ({file_size_mb:.2f} MB) para el endpoint de transcripción en la nube. "
+                "Usa transcripción local o reduce la duración del video."
+            )
+
         upload_path = temp_mp3
-        
+
     try:
         with open(upload_path, "rb") as f:
             files = {"file": (os.path.basename(upload_path), f, "audio/mp3" if temp_mp3 else "audio/wav")}

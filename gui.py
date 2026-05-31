@@ -219,7 +219,9 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.subheader("📹 Cargar Video")
     uploaded_file = st.file_uploader(
-        "Selecciona un video (MP4/MKV/MOV)", type=["mp4", "mkv", "mov"]
+        "Selecciona un video (MP4/MKV/MOV)",
+        type=["mp4", "mkv", "mov"],
+        max_upload_size=10240
     )
     st.info("💡 Una vez subido el video, haz clic en 'Comenzar Pipeline' para procesar.")
     local_path = st.text_input("O introduce la ruta de un archivo local (más rápido):")
@@ -239,10 +241,20 @@ if process_btn:
     temp_uploaded_path = None
 
     if uploaded_file is not None:
-        temp_uploaded_path = os.path.join(tempfile.gettempdir(), "temp_uploaded_video.mp4")
+        import uuid
+        temp_uploaded_path = os.path.join(
+            tempfile.gettempdir(),
+            f"temp_uploaded_video_{uuid.uuid4().hex}.mp4"
+        )
         with open(temp_uploaded_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        video_to_process = temp_uploaded_path
+            f.write(uploaded_file.read())
+
+        if not os.path.exists(temp_uploaded_path):
+            st.error("❌ No se pudo guardar el video temporal. Intenta usar la ruta local.")
+        else:
+            file_size = os.path.getsize(temp_uploaded_path)
+            status_area.write(f"✅ Video temporal guardado en {temp_uploaded_path} ({file_size // (1024*1024)} MB)")
+            video_to_process = temp_uploaded_path
     elif local_path:
         if os.path.exists(local_path):
             video_to_process = local_path
@@ -258,6 +270,9 @@ if process_btn:
 
         try:
             # ── Paso 1: Audio ──────────────────────────────────────────────
+            if not os.path.exists(video_to_process):
+                raise FileNotFoundError(f"El archivo de video no existe: {video_to_process}")
+
             status_area.write("⏳ Paso 1: Extrayendo audio del video...")
             progress_bar.progress(10)
             extract_audio(video_to_process, temp_audio)
@@ -394,8 +409,12 @@ if process_btn:
             st.code(traceback.format_exc())
         finally:
             if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            if temp_uploaded_path and os.path.exists(temp_uploaded_path):
-                os.remove(temp_uploaded_path)
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            if temp_uploaded_path:
+                try:
+                    if os.path.exists(temp_uploaded_path):
+                        os.remove(temp_uploaded_path)
+                except Exception:
+                    pass
     else:
         st.warning("⚠️ Sube un video o ingresa la ruta de un archivo local válido.")
