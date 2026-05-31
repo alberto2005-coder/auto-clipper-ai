@@ -5,8 +5,8 @@ import json
 import tempfile
 from transcriber import extract_audio, transcribe_audio
 from analyzer import select_best_moments_with_llm
-from subtitle_generator import generate_ass_subtitles
-from video_editor import process_video_clip
+from subtitle_generator import generate_ass_subtitles, SUBTITLE_STYLES, AVAILABLE_FONTS
+from video_editor import process_video_clip, compute_title_info
 
                        
 st.set_page_config(
@@ -44,7 +44,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-title">🎬 Auto-Clipper AI</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #888;'>Corta, re-encuadra a 9:16 y genera subtítulos dinámicos de forma automática para TikTok y Shorts.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #888;'>Corta, re-encuadra y genera subtítulos dinámicos de forma automática para TikTok, Shorts, YouTube y más.</p>", unsafe_allow_html=True)
 
                         
 st.sidebar.header("⚙️ Configuración del Sistema")
@@ -64,6 +64,89 @@ use_cloud_transcription = st.sidebar.checkbox(
     help="Usa la API de Groq o OpenAI para transcribir el audio en segundos en la nube. ¡Ideal para videos largos de más de 5 minutos!"
 )
 
+
+st.sidebar.markdown("---")
+
+st.sidebar.header("🎞️ Formato de Video")
+
+video_format = st.sidebar.radio(
+    "Tipo de video de salida",
+    options=["9:16", "16:9", "1:1"],
+    index=0,
+    help="**9:16** → TikTok / YouTube Shorts / Instagram Reels\n\n**16:9** → YouTube horizontal / presentaciones\n\n**1:1** → Instagram Feed / Twitter"
+)
+
+FORMAT_LABELS = {
+    "9:16": "📱 Vertical (9:16)",
+    "16:9": "🖥️ Horizontal (16:9)",
+    "1:1":  "⬛ Cuadrado (1:1)",
+}
+
+st.sidebar.markdown("---")
+
+st.sidebar.header("🎨 Estilo de Subtítulos")
+
+enable_subtitles = st.sidebar.checkbox(
+    "✏️ Añadir subtítulos dinámicos",
+    value=True,
+    help="Desactiva esto si el video ya tiene subtítulos propios o no quieres añadirlos."
+)
+
+if enable_subtitles:
+    subtitle_style_key = st.sidebar.selectbox(
+        "Estilo de color",
+        options=list(SUBTITLE_STYLES.keys()),
+        format_func=lambda k: SUBTITLE_STYLES[k]["label"],
+        index=0,
+    )
+    font_name = st.sidebar.selectbox(
+        "Tipo de letra",
+        options=AVAILABLE_FONTS,
+        index=0,
+    )
+    font_size = st.sidebar.slider(
+        "Tamaño de letra",
+        min_value=40, max_value=130, value=75, step=5,
+    )
+    subtitle_position = st.sidebar.radio(
+        "Posición de los subtítulos",
+        options=["bottom", "center", "top"],
+        format_func=lambda p: {
+            "bottom": "⬇️ Abajo",
+            "center": "↔️ Centro",
+            "top":    "⬆️ Arriba",
+        }[p],
+        index=0,
+    )
+else:
+    subtitle_style_key = "tiktok"
+    font_name = "Arial Black"
+    font_size = 75
+    subtitle_position = "bottom"
+
+st.sidebar.markdown("---")
+
+st.sidebar.header("🏷️ Título en el Video")
+
+show_title = st.sidebar.checkbox(
+    "📌 Quemar título en el video",
+    value=True,
+    help="Muestra el título recomendado por la IA como texto dentro del clip."
+)
+
+if show_title:
+    title_position = st.sidebar.radio(
+        "Posición del título",
+        options=["top", "center", "bottom"],
+        format_func=lambda p: {
+            "top":    "⬆️ Arriba",
+            "center": "↔️ Centro",
+            "bottom": "⬇️ Abajo",
+        }[p],
+        index=0,
+    )
+else:
+    title_position = "top"
 
 st.sidebar.markdown("---")
 
@@ -184,12 +267,37 @@ if process_btn:
                 clip_output_path = os.path.join(output_dir, clip_output_name)
                 
                            
-                ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
-                generate_ass_subtitles(transcription_data, start, end, ass_path)
+                # ── Calcular offset de subtítulos si colisionan con el título ───────────
+                # Si título y subtítulos están en el mismo borde, el subtitulo
+                # arranca justo donde termina el bloque del título (+ 20px gap).
+                subtitle_margin_override = None
+                clip_title = clip.get("hook_title", "")
+                if show_title and clip_title and enable_subtitles and title_position == subtitle_position:
+                    anchor_px, title_h = compute_title_info(clip_title, video_format, title_position)
+                    subtitle_margin_override = anchor_px + title_h + 20
+
+                # ── Generar subtítulos ASS solo si el usuario los activó ────────────
+                ass_path = None
+                if enable_subtitles:
+                    ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
+                    generate_ass_subtitles(
+                        transcription_data, start, end, ass_path,
+                        subtitle_position=subtitle_position,
+                        font_name=font_name,
+                        font_size=font_size,
+                        subtitle_style=subtitle_style_key,
+                        margin_override=subtitle_margin_override,
+                    )
                 
                         
                 status_area.write(f"🎬 Procesando video {idx+1}/{len(clips)}: '{clip.get('hook_title')}'...")
-                process_video_clip(video_to_process, start, end, ass_path, clip_output_path)
+                process_video_clip(
+                    video_to_process, start, end, ass_path, clip_output_path,
+                    video_format=video_format,
+                    hook_title=clip.get("hook_title", "") if show_title else "",
+                    title_position=title_position,
+                    subtitle_position=subtitle_position,
+                )
                 
             progress_bar.progress(100)
             status_area.success("🎉 ¡Todo listo! Clips creados correctamente.")
@@ -197,23 +305,38 @@ if process_btn:
                              
             st.write("---")
             st.subheader("🎉 Clips Creados")
-            
-            result_cols = st.columns(len(clips) if len(clips) > 0 else 1)
+
+            # Determine a sensible column layout (max 3 per row)
+            n_clips = len(clips) if len(clips) > 0 else 1
+            result_cols = st.columns(min(n_clips, 3))
+
+            # Video player width: vertical needs less horizontal space than horizontal formats
+            VIDEO_WIDTH_MAP = {"9:16": 320, "16:9": 560, "1:1": 420}
+            player_width = VIDEO_WIDTH_MAP.get(video_format, 400)
+
             for idx, clip in enumerate(clips):
                 title = clip.get("hook_title", f"Clip {idx+1}")
                 safe_title = "".join(c for c in title.replace(" ", "_").lower() if c.isalnum() or c in ("_", "-"))
                 clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
                 clip_path = os.path.join(output_dir, clip_output_name)
-                
+
                 if os.path.exists(clip_path):
-                    with result_cols[idx]:
+                    col = result_cols[idx % 3]
+                    with col:
                         st.markdown(f"### {title}")
+                        st.caption(FORMAT_LABELS.get(video_format, video_format))
+
+                        # Wrap the video player in a fixed-width div so it doesn't stretch
+                        st.markdown(
+                            f"<div style='max-width:{player_width}px;'>",
+                            unsafe_allow_html=True
+                        )
                         st.video(clip_path)
-                        
-                                                                        
+                        st.markdown("</div>", unsafe_allow_html=True)
+
                         social_desc = clip.get("social_description", "¡Mira este clip!")
-                        st.info(f"✍️ **Copy sugerido para TikTok/Shorts:**\n\n{social_desc}")
-                        
+                        st.info(f"✍️ **Copy sugerido:**\n\n{social_desc}")
+
                         with open(clip_path, "rb") as file:
                             st.download_button(
                                 label=f"⬇️ Descargar Clip",
