@@ -97,14 +97,64 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
             ],
             "response_format": {"type": "json_object"}
         }
+        def do_request(payload_to_send):
+            resp = requests.post(api_url, json=payload_to_send, headers=headers, timeout=60)
+            resp.raise_for_status()
+            return resp.json()
+
         try:
-            response = requests.post(api_url, json=payload, headers=headers, timeout=60)
-            response.raise_for_status()
-            res_json = response.json()
+            res_json = do_request(payload)
             response_text = res_json["choices"][0]["message"]["content"]
         except Exception as e:
-            print(f"[!] API connection error: {e}. Falling back to default segment (first 40 seconds).")
-            return [{"start": 0.0, "end": 40.0, "hook_title": "Clip de Muestra", "explanation": "Fallback"}]
+            # Si la carga es demasiado grande, intentar reintentar con un contexto truncado
+            print(f"[!] API connection error: {e}. Attempting retry with truncated context...")
+            try:
+                truncated_context = context_text[:3000]
+                truncated_prompt = """
+
+Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar los momentos más virales, entretenidos, informativos o con un gancho (hook) muy fuerte en este video largo.
+
+Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y 3 segmentos idóneos para convertirlos en videos cortos.
+
+REGLAS OBLIGATORIAS DE DURACIÓN (MUY IMPORTANTE):
+- La duración de cada clip DEBE ser de al menos 20 segundos y máximo 60 segundos (la diferencia "end" menos "start" tiene que ser como mínimo de 20.0 segundos).
+- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos de menos de 20 segundos. No devuelvas clips de 5, 8 o 15 segundos.
+
+
+IMPORTANTE PARA LOS TÍTULOS Y DESCRIPCIONES:
+- Los títulos deben sonar 100% naturales, como escritos por un creador de contenido humano experto.
+- EVITA palabras clichés de IA como: "revolucionario", "el secreto de", "increíble", "descubre cómo", "impactante", etc.
+- Usa intriga, preguntas directas o afirmaciones contundentes. Ejemplo malo de IA: "El Secreto Para Ser Millonario". Ejemplo bueno humano: "Por esto no eres millonario a los 20".
+- Proporciona también una breve descripción para redes sociales que actúe como copy de enganche.
+
+Transcripción:
+{truncated}
+
+Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues explicaciones fuera del JSON):
+[
+  {{
+    "start": float,
+    "end": float,
+    "hook_title": "Título humano y viral",
+    "social_description": "Copywriting para la descripción del video",
+    "explanation": "Por qué este momento es viral"
+  }}
+]
+""".format(truncated=truncated_context)
+
+                payload_trunc = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": "Eres un editor de video experto que devuelve solo JSON."},
+                        {"role": "user", "content": truncated_prompt}
+                    ],
+                    "response_format": {"type": "json_object"}
+                }
+                res_json = do_request(payload_trunc)
+                response_text = res_json["choices"][0]["message"]["content"]
+            except Exception as e2:
+                print(f"[!] Retry with truncated context failed: {e2}. Falling back to default segment (first 40 seconds).")
+                return [{"start": 0.0, "end": 40.0, "hook_title": "Clip de Muestra", "explanation": "Fallback"}]
 
     try:
                                  
