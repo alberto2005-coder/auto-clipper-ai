@@ -1,10 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_dynamic_libs
 from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import copy_metadata
 
 datas = [('C:\\Users\\alors\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\streamlit', './streamlit'), ('gui.py', '.'), ('main.py', '.'), ('transcriber.py', '.'), ('analyzer.py', '.'), ('subtitle_generator.py', '.'), ('video_editor.py', '.')]
 binaries = []
 hiddenimports = []
+datas += copy_metadata('streamlit')
 binaries += collect_dynamic_libs('imageio_ffmpeg')
 tmp_ret = collect_all('faster_whisper')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
