@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import shutil
 import json
+import tempfile
 from transcriber import extract_audio, transcribe_audio
 from analyzer import select_best_moments_with_llm
 from subtitle_generator import generate_ass_subtitles
@@ -117,7 +118,7 @@ if process_btn:
     
     if uploaded_file is not None:
                                          
-        temp_uploaded_path = "temp_uploaded_video.mp4"
+        temp_uploaded_path = os.path.join(tempfile.gettempdir(), "temp_uploaded_video.mp4")
         with open(temp_uploaded_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         video_to_process = temp_uploaded_path
@@ -128,8 +129,8 @@ if process_btn:
             st.error(f"❌ La ruta local '{local_path}' no existe.")
             
     if video_to_process:
-        temp_dir = "temp_gui_processing"
-        output_dir = "output_clips_gui"
+        temp_dir = os.path.join(tempfile.gettempdir(), "temp_gui_processing")
+        output_dir = os.path.join(tempfile.gettempdir(), "output_clips_gui")
         os.makedirs(temp_dir, exist_ok=True)
         os.makedirs(output_dir, exist_ok=True)
         

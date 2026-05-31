@@ -113,7 +113,8 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
     
     if file_size_mb > 24:
         print(f"[*] Audio file size ({file_size_mb:.2f}MB) exceeds 24MB. Compressing to MP3...")
-        temp_mp3 = "temp_compressed.mp3"
+        import tempfile
+        temp_mp3 = os.path.join(tempfile.gettempdir(), "temp_compressed.mp3")
         ffmpeg_bin = get_ffmpeg_path()
         cmd = [
             ffmpeg_bin, "-y",
