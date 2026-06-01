@@ -17,7 +17,7 @@ def analyze_audio_energy(audio_path, segment_duration=1.0):
         print(f"[!] Warning: Librosa analysis failed ({e}). Proceeding without audio energy analysis.")
         return []
 
-def select_best_moments_with_llm(transcription_data, provider="ollama", api_url="http://localhost:11434/api/generate", api_key=None, model="llama3.2:3b"):
+def select_best_moments_with_llm(transcription_data, provider="ollama", api_url="http://localhost:11434/api/generate", api_key=None, model="llama3.2:3b", max_clips=3):
     """Uses Ollama or OpenAI-compatible API to identify highly engaging moments/hooks."""
     if not transcription_data:
         print("[*] No speech found in video (empty transcription). Creating a default 10-second clip.")
@@ -27,18 +27,42 @@ def select_best_moments_with_llm(transcription_data, provider="ollama", api_url=
 
     
                                                                  
-    simplified_transcript = []
+    # Agrupar segmentos consecutivos para ahorrar tokens de marcas de tiempo
+    compressed_transcript = []
+    current_start = None
+    current_end = None
+    current_texts = []
+    TARGET_DURATION = 15.0  # Segundos aproximados por bloque
+
     for seg in transcription_data:
-        simplified_transcript.append(f"[{seg['start']:.2f}s - {seg['end']:.2f}s]: {seg['text']}")
-    
-    context_text = "\n".join(simplified_transcript)
-    print(f"[*] Simplified transcript sent to LLM (first 500 chars):\n{context_text[:500]}...")
+        start = seg.get("start", 0.0)
+        end = seg.get("end", start)
+        text = seg.get("text", "").strip()
+        if not text:
+            continue
+        if current_start is None:
+            current_start = start
+            current_end = end
+            current_texts.append(text)
+        elif start - current_start < TARGET_DURATION:
+            current_end = end
+            current_texts.append(text)
+        else:
+            compressed_transcript.append(f"[{current_start:.1f}s-{current_end:.1f}s]: {' '.join(current_texts)}")
+            current_start = start
+            current_end = end
+            current_texts = [text]
+    if current_start is not None:
+        compressed_transcript.append(f"[{current_start:.1f}s-{current_end:.1f}s]: {' '.join(current_texts)}")
+
+    context_text = "\n".join(compressed_transcript)
+    print(f"[*] Compressed transcript sent to LLM (first 500 chars):\n{context_text[:500]}...")
     
     prompt = f"""
 
 Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar los momentos más virales, entretenidos, informativos o con un gancho (hook) muy fuerte en este video largo.
 
-Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y 3 segmentos idóneos para convertirlos en videos cortos.
+Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y {max_clips} segmentos idóneos para convertirlos en videos cortos.
 
 REGLAS OBLIGATORIAS DE DURACIÓN (MUY IMPORTANTE):
 - La duración de cada clip DEBE ser de al menos 20 segundos y máximo 60 segundos (la diferencia "end" menos "start" tiene que ser como mínimo de 20.0 segundos).
@@ -114,7 +138,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
 
 Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar los momentos más virales, entretenidos, informativos o con un gancho (hook) muy fuerte en este video largo.
 
-Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y 3 segmentos idóneos para convertirlos en videos cortos.
+Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y {max_clips} segmentos idóneos para convertirlos en videos cortos.
 
 REGLAS OBLIGATORIAS DE DURACIÓN (MUY IMPORTANTE):
 - La duración de cada clip DEBE ser de al menos 20 segundos y máximo 60 segundos (la diferencia "end" menos "start" tiene que ser como mínimo de 20.0 segundos).
@@ -140,7 +164,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
     "explanation": "Por qué este momento es viral"
   }}
 ]
-""".format(truncated=truncated_context)
+""".format(truncated=truncated_context, max_clips=max_clips)
 
                 payload_trunc = {
                     "model": model,

@@ -6,6 +6,37 @@ from transcriber import extract_audio, transcribe_audio
 from analyzer import select_best_moments_with_llm
 from subtitle_generator import generate_ass_subtitles, SUBTITLE_STYLES, AVAILABLE_FONTS
 from video_editor import process_video_clip, compute_title_info, TITLE_STYLES, TITLE_FONTS
+import json
+import datetime
+
+def get_persistent_output_dir():
+    home = os.path.expanduser("~")
+    videos_dir = os.path.join(home, "Videos")
+    if os.path.exists(videos_dir):
+        path = os.path.join(videos_dir, "AutoClipperAI")
+    else:
+        path = os.path.join(home, "AutoClipperAI")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+def load_history(output_dir):
+    history_file = os.path.join(output_dir, "historial.json")
+    if os.path.exists(history_file):
+        try:
+            with open(history_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_history(output_dir, history):
+    history_file = os.path.join(output_dir, "historial.json")
+    try:
+        with open(history_file, "w", encoding="utf-8") as f:
+            json.dump(history, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving history: {e}")
+
 
 # ─── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -198,6 +229,11 @@ default_model = (
     else ("gpt-4o-mini" if provider == "openai" else "llama-3.3-70b-versatile")
 )
 llm_model = st.sidebar.text_input("Modelo de IA", default_model)
+max_clips = st.sidebar.slider(
+    "Número máximo de clips a generar",
+    min_value=1, max_value=10, value=3, step=1,
+    help="Indica a la IA cuántos clips virales como máximo debe buscar."
+)
 
 # Resolve API URL
 api_url = "http://localhost:11434/api/generate"
@@ -214,207 +250,339 @@ else:
 # MAIN AREA
 # ══════════════════════════════════════════════════════════════════════════════
 
-col1, col2 = st.columns([1, 1])
+tab_proc, tab_lib = st.tabs(["🚀 Procesador de Clips", "📚 Biblioteca de Clips"])
 
-with col1:
-    st.subheader("📹 Cargar Video")
-    uploaded_file = st.file_uploader(
-        "Selecciona un video (MP4/MKV/MOV)",
-        type=["mp4", "mkv", "mov"],
-        max_upload_size=10240
-    )
-    st.info("💡 Una vez subido el video, haz clic en 'Comenzar Pipeline' para procesar.")
-    local_path = st.text_input("O introduce la ruta de un archivo local (más rápido):")
+with tab_proc:
+    col1, col2 = st.columns([1, 1])
 
-with col2:
-    st.subheader("📋 Consola de Procesamiento")
-    process_btn  = st.button("🚀 Comenzar Pipeline")
-    status_area  = st.empty()
-    progress_bar = st.progress(0)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# PIPELINE
-# ══════════════════════════════════════════════════════════════════════════════
-
-if process_btn:
-    video_to_process = ""
-    temp_uploaded_path = None
-
-    if uploaded_file is not None:
-        import uuid
-        temp_uploaded_path = os.path.join(
-            tempfile.gettempdir(),
-            f"temp_uploaded_video_{uuid.uuid4().hex}.mp4"
+    with col1:
+        st.subheader("📹 Cargar Video")
+        uploaded_file = st.file_uploader(
+            "Selecciona un video (MP4/MKV/MOV)",
+            type=["mp4", "mkv", "mov"],
+            max_upload_size=10240
         )
-        with open(temp_uploaded_path, "wb") as f:
-            f.write(uploaded_file.read())
+        st.info("💡 Una vez subido el video, haz clic en 'Comenzar Pipeline' para procesar.")
+        local_path = st.text_input("O introduce la ruta de un archivo local (más rápido):")
 
-        if not os.path.exists(temp_uploaded_path):
-            st.error("❌ No se pudo guardar el video temporal. Intenta usar la ruta local.")
-        else:
-            file_size = os.path.getsize(temp_uploaded_path)
-            status_area.write(f"✅ Video temporal guardado en {temp_uploaded_path} ({file_size // (1024*1024)} MB)")
-            video_to_process = temp_uploaded_path
-    elif local_path:
-        if os.path.exists(local_path):
-            video_to_process = local_path
-        else:
-            st.error(f"❌ La ruta local '{local_path}' no existe.")
+    with col2:
+        st.subheader("📋 Consola de Procesamiento")
+        process_btn  = st.button("🚀 Comenzar Pipeline")
+        status_area  = st.empty()
+        progress_bar = st.progress(0)
 
-    if video_to_process:
-        temp_dir   = os.path.join(tempfile.gettempdir(), "temp_gui_processing")
-        output_dir = os.path.join(tempfile.gettempdir(), "output_clips_gui")
-        os.makedirs(temp_dir,   exist_ok=True)
-        os.makedirs(output_dir, exist_ok=True)
-        temp_audio = os.path.join(temp_dir, "extracted_audio.wav")
+    # ══════════════════════════════════════════════════════════════════════════════
+    # PIPELINE
+    # ══════════════════════════════════════════════════════════════════════════════
 
-        try:
-            # ── Paso 1: Audio ──────────────────────────────────────────────
-            if not os.path.exists(video_to_process):
-                raise FileNotFoundError(f"El archivo de video no existe: {video_to_process}")
+    if process_btn:
+        video_to_process = ""
+        temp_uploaded_path = None
 
-            status_area.write("⏳ Paso 1: Extrayendo audio del video...")
-            progress_bar.progress(10)
-            extract_audio(video_to_process, temp_audio)
-
-            # ── Paso 2: Transcripción ──────────────────────────────────────
-            if use_cloud_transcription and provider in ["groq", "openai"] and api_key:
-                status_area.write(
-                    f"⏳ Paso 2: Transcribiendo en la nube con {provider} (ultra rápido)..."
-                )
-                progress_bar.progress(30)
-                from transcriber import transcribe_audio_cloud
-                trans_api_url = None
-                if provider == "openai" and api_url and "completions" not in api_url:
-                    trans_api_url = api_url
-                transcription_data = transcribe_audio_cloud(
-                    temp_audio, api_key=api_key, provider=provider,
-                    api_url=trans_api_url, language=lang
-                )
-            else:
-                status_area.write("⏳ Paso 2: Transcribiendo localmente con Whisper...")
-                progress_bar.progress(30)
-                transcription_data = transcribe_audio(
-                    temp_audio, model_size=whisper_model, language=lang
-                )
-
-            # ── Paso 3: IA selecciona momentos ────────────────────────────
-            status_area.write("⏳ Paso 3: Identificando los mejores momentos con IA...")
-            progress_bar.progress(60)
-            clips = select_best_moments_with_llm(
-                transcription_data,
-                provider=resolved_provider,
-                api_url=api_url,
-                api_key=api_key if api_key else None,
-                model=llm_model
+        if uploaded_file is not None:
+            import uuid
+            temp_uploaded_path = os.path.join(
+                tempfile.gettempdir(),
+                f"temp_uploaded_video_{uuid.uuid4().hex}.mp4"
             )
+            with open(temp_uploaded_path, "wb") as f:
+                f.write(uploaded_file.read())
 
-            status_area.write(f"✅ Se encontraron {len(clips)} momentos. Creando clips...")
-            progress_bar.progress(75)
+            if not os.path.exists(temp_uploaded_path):
+                st.error("❌ No se pudo guardar el video temporal. Intenta usar la ruta local.")
+            else:
+                file_size = os.path.getsize(temp_uploaded_path)
+                status_area.write(f"✅ Video temporal guardado en {temp_uploaded_path} ({file_size // (1024*1024)} MB)")
+                video_to_process = temp_uploaded_path
+        elif local_path:
+            if os.path.exists(local_path):
+                video_to_process = local_path
+            else:
+                st.error(f"❌ La ruta local '{local_path}' no existe.")
 
-            # ── Paso 4: Generar clips ──────────────────────────────────────
-            for idx, clip in enumerate(clips):
-                start      = clip["start"]
-                end        = clip["end"]
-                clip_title = clip.get("hook_title", f"clip_{idx+1}")
-                safe_title = "".join(
-                    c for c in clip_title.replace(" ", "_").lower()
-                    if c.isalnum() or c in ("_", "-")
-                )
-                clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
-                clip_output_path = os.path.join(output_dir, clip_output_name)
+        if video_to_process:
+            temp_dir   = os.path.join(tempfile.gettempdir(), "temp_gui_processing")
+            output_dir = get_persistent_output_dir()
+            os.makedirs(temp_dir,   exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
+            temp_audio = os.path.join(temp_dir, "extracted_audio.wav")
 
-                # ── Calcular offset si título y subtítulos comparten borde ──
-                subtitle_margin_override = None
-                if show_title and clip_title and enable_subtitles and title_position == subtitle_position:
-                    anchor_px, title_h = compute_title_info(
-                        clip_title, video_format, title_position, title_font_size
+            try:
+                # ── Paso 1: Audio ──────────────────────────────────────────────
+                if not os.path.exists(video_to_process):
+                    raise FileNotFoundError(f"El archivo de video no existe: {video_to_process}")
+
+                status_area.write("⏳ Paso 1: Extrayendo audio del video...")
+                progress_bar.progress(10)
+                extract_audio(video_to_process, temp_audio)
+
+                # ── Paso 2: Transcripción ──────────────────────────────────────
+                if use_cloud_transcription and provider in ["groq", "openai"] and api_key:
+                    status_area.write(
+                        f"⏳ Paso 2: Transcribiendo en la nube con {provider} (ultra rápido)..."
                     )
-                    subtitle_margin_override = anchor_px + title_h + 20
-
-                # ── Generar ASS ────────────────────────────────────────────
-                ass_path = None
-                if enable_subtitles:
-                    ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
-                    generate_ass_subtitles(
-                        transcription_data, start, end, ass_path,
-                        subtitle_position=subtitle_position,
-                        font_name=sub_font_name,
-                        font_size=sub_font_size,
-                        subtitle_style=subtitle_style_key,
-                        margin_override=subtitle_margin_override,
+                    progress_bar.progress(30)
+                    from transcriber import transcribe_audio_cloud
+                    trans_api_url = None
+                    if provider == "openai" and api_url and "completions" not in api_url:
+                        trans_api_url = api_url
+                    transcription_data = transcribe_audio_cloud(
+                        temp_audio, api_key=api_key, provider=provider,
+                        api_url=trans_api_url, language=lang
+                    )
+                else:
+                    status_area.write("⏳ Paso 2: Transcribiendo localmente con Whisper...")
+                    progress_bar.progress(30)
+                    transcription_data = transcribe_audio(
+                        temp_audio, model_size=whisper_model, language=lang
                     )
 
-                # ── Procesar clip con FFmpeg ───────────────────────────────
-                status_area.write(
-                    f"🎬 Procesando {idx+1}/{len(clips)}: '{clip_title}'..."
-                )
-                process_video_clip(
-                    video_to_process, start, end, ass_path, clip_output_path,
-                    video_format=video_format,
-                    hook_title=clip_title if show_title else "",
-                    title_position=title_position,
-                    title_font_size=title_font_size,
-                    title_style=title_style_key,
-                    title_font=title_font,
-                    subtitle_position=subtitle_position,
+                # ── Paso 3: IA selecciona momentos ────────────────────────────
+                status_area.write("⏳ Paso 3: Identificando los mejores momentos con IA...")
+                progress_bar.progress(60)
+                clips = select_best_moments_with_llm(
+                    transcription_data,
+                    provider=resolved_provider,
+                    api_url=api_url,
+                    api_key=api_key if api_key else None,
+                    model=llm_model,
+                    max_clips=max_clips
                 )
 
-            progress_bar.progress(100)
-            status_area.success("🎉 ¡Todo listo! Clips creados correctamente.")
+                status_area.write(f"✅ Se encontraron {len(clips)} momentos. Creando clips...")
+                progress_bar.progress(75)
 
-            # ── Mostrar resultados ─────────────────────────────────────────
-            st.write("---")
-            st.subheader("🎉 Clips Creados")
+                # ── Paso 4: Generar clips ──────────────────────────────────────
+                for idx, clip in enumerate(clips):
+                    start      = clip["start"]
+                    end        = clip["end"]
+                    clip_title = clip.get("hook_title", f"clip_{idx+1}")
+                    safe_title = "".join(
+                        c for c in clip_title.replace(" ", "_").lower()
+                        if c.isalnum() or c in ("_", "-")
+                    )
+                    clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
+                    clip_output_path = os.path.join(output_dir, clip_output_name)
 
-            n_clips      = max(len(clips), 1)
-            result_cols  = st.columns(min(n_clips, 3))
-            VIDEO_WIDTH_MAP = {"9:16": 320, "16:9": 560, "1:1": 420}
-            player_width = VIDEO_WIDTH_MAP.get(video_format, 400)
-
-            for idx, clip in enumerate(clips):
-                clip_title     = clip.get("hook_title", f"Clip {idx+1}")
-                safe_title     = "".join(
-                    c for c in clip_title.replace(" ", "_").lower()
-                    if c.isalnum() or c in ("_", "-")
-                )
-                clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
-                clip_path        = os.path.join(output_dir, clip_output_name)
-
-                if os.path.exists(clip_path):
-                    with result_cols[idx % 3]:
-                        st.markdown(f"### {clip_title}")
-                        st.caption(FORMAT_LABELS.get(video_format, video_format))
-                        st.markdown(
-                            f"<div style='max-width:{player_width}px;'>",
-                            unsafe_allow_html=True
+                    # ── Calcular offset si título y subtítulos comparten borde ──
+                    subtitle_margin_override = None
+                    if show_title and clip_title and enable_subtitles and title_position == subtitle_position:
+                        anchor_px, title_h = compute_title_info(
+                            clip_title, video_format, title_position, title_font_size
                         )
-                        st.video(clip_path)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        subtitle_margin_override = anchor_px + title_h + 20
 
-                        social_desc = clip.get("social_description", "¡Mira este clip!")
-                        st.info(f"✍️ **Copy sugerido:**\n\n{social_desc}")
+                    # ── Generar ASS ────────────────────────────────────────────
+                    ass_path = None
+                    if enable_subtitles:
+                        ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
+                        generate_ass_subtitles(
+                            transcription_data, start, end, ass_path,
+                            subtitle_position=subtitle_position,
+                            font_name=sub_font_name,
+                            font_size=sub_font_size,
+                            subtitle_style=subtitle_style_key,
+                            margin_override=subtitle_margin_override,
+                        )
 
-                        with open(clip_path, "rb") as file:
-                            st.download_button(
-                                label="⬇️ Descargar Clip",
-                                data=file,
-                                file_name=clip_output_name,
-                                mime="video/mp4"
+                    # ── Procesar clip con FFmpeg ───────────────────────────────
+                    status_area.write(
+                        f"🎬 Procesando {idx+1}/{len(clips)}: '{clip_title}'..."
+                    )
+                    process_video_clip(
+                        video_to_process, start, end, ass_path, clip_output_path,
+                        video_format=video_format,
+                        hook_title=clip_title if show_title else "",
+                        title_position=title_position,
+                        title_font_size=title_font_size,
+                        title_style=title_style_key,
+                        title_font=title_font,
+                        subtitle_position=subtitle_position,
+                    )
+
+                progress_bar.progress(100)
+                status_area.success("🎉 ¡Todo listo! Clips creados correctamente.")
+
+                # ── Guardar en el historial ─────────────────────────────────────
+                history = load_history(output_dir)
+                now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                for idx, clip in enumerate(clips):
+                    clip_title     = clip.get("hook_title", f"Clip {idx+1}")
+                    safe_title     = "".join(
+                        c for c in clip_title.replace(" ", "_").lower()
+                        if c.isalnum() or c in ("_", "-")
+                    )
+                    clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
+                    clip_path        = os.path.join(output_dir, clip_output_name)
+                    if os.path.exists(clip_path):
+                        if not any(item.get("clip_path") == clip_path for item in history):
+                            history.append({
+                                "clip_name": clip_output_name,
+                                "clip_path": clip_path,
+                                "title": clip_title,
+                                "start": clip.get("start", 0),
+                                "end": clip.get("end", 0),
+                                "social_description": clip.get("social_description", ""),
+                                "created_at": now_str,
+                                "video_format": video_format
+                            })
+                save_history(output_dir, history)
+
+                # ── Mostrar resultados ─────────────────────────────────────────
+                st.write("---")
+                st.subheader("🎉 Clips Creados")
+
+                n_clips      = max(len(clips), 1)
+                result_cols  = st.columns(min(n_clips, 3))
+                VIDEO_WIDTH_MAP = {"9:16": 320, "16:9": 560, "1:1": 420}
+                player_width = VIDEO_WIDTH_MAP.get(video_format, 400)
+                def format_seconds_to_time(seconds):
+                    mins = int(seconds // 60)
+                    secs = int(seconds % 60)
+                    centis = int(round((seconds % 1) * 100))
+                    if centis == 100:
+                        secs += 1
+                        centis = 0
+                    return f"{mins:02d}:{secs:02d}.{centis:02d}"
+
+                for idx, clip in enumerate(clips):
+                    start          = clip.get("start", 0)
+                    end            = clip.get("end", 0)
+                    clip_title     = clip.get("hook_title", f"Clip {idx+1}")
+                    safe_title     = "".join(
+                        c for c in clip_title.replace(" ", "_").lower()
+                        if c.isalnum() or c in ("_", "-")
+                    )
+                    clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
+                    clip_path        = os.path.join(output_dir, clip_output_name)
+
+                    if os.path.exists(clip_path):
+                        with result_cols[idx % 3]:
+                            st.markdown(f"### {clip_title}")
+                            st.markdown(f"⏱️ **Original:** `{format_seconds_to_time(start)}` al `{format_seconds_to_time(end)}`")
+                            st.caption(FORMAT_LABELS.get(video_format, video_format))
+                            st.markdown(
+                                f"<div style='max-width:{player_width}px;'>",
+                                unsafe_allow_html=True
                             )
+                            st.video(clip_path)
+                            st.markdown("</div>", unsafe_allow_html=True)
 
+                            social_desc = clip.get("social_description", "¡Mira este clip!")
+                            st.info(f"✍️ **Copy sugerido:**\n\n{social_desc}")
+
+                            with open(clip_path, "rb") as file:
+                                st.download_button(
+                                    label="⬇️ Descargar Clip",
+                                    data=file,
+                                    file_name=clip_output_name,
+                                    mime="video/mp4"
+                                )
+
+            except Exception as e:
+                st.error(f"❌ Error en el procesamiento: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+            finally:
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                if temp_uploaded_path:
+                    try:
+                        if os.path.exists(temp_uploaded_path):
+                            os.remove(temp_uploaded_path)
+                    except Exception:
+                        pass
+        else:
+            st.warning("⚠️ Sube un video o ingresa la ruta de un archivo local válido.")
+
+with tab_lib:
+    output_dir = get_persistent_output_dir()
+    st.subheader("📚 Biblioteca y Historial de Clips")
+    st.markdown(f"📁 **Carpeta de guardado:** `{output_dir}`")
+
+    # Botón para abrir la carpeta (solo funciona localmente)
+    if st.button("📂 Abrir Carpeta en el Explorador"):
+        try:
+            os.startfile(output_dir)
         except Exception as e:
-            st.error(f"❌ Error en el procesamiento: {e}")
-            import traceback
-            st.code(traceback.format_exc())
-        finally:
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir, ignore_errors=True)
-            if temp_uploaded_path:
-                try:
-                    if os.path.exists(temp_uploaded_path):
-                        os.remove(temp_uploaded_path)
-                except Exception:
-                    pass
+            st.error(f"No se pudo abrir la carpeta: {e}")
+
+    st.write("---")
+
+    history = load_history(output_dir)
+    # Filtrar solo entradas que correspondan a archivos físicos reales que existan
+    valid_history = []
+    for item in history:
+        c_path = item.get("clip_path", "")
+        if c_path and os.path.exists(c_path):
+            valid_history.append(item)
+
+    if not valid_history:
+        st.info("Aún no tienes clips en tu biblioteca. ¡Procesa un video para empezar!")
     else:
-        st.warning("⚠️ Sube un video o ingresa la ruta de un archivo local válido.")
+        # Ordenar de más reciente a más antiguo
+        valid_history = list(reversed(valid_history))
+
+        def format_seconds_to_time(seconds):
+            mins = int(seconds // 60)
+            secs = int(seconds % 60)
+            centis = int(round((seconds % 1) * 100))
+            if centis == 100:
+                secs += 1
+                centis = 0
+            return f"{mins:02d}:{secs:02d}.{centis:02d}"
+
+        for idx, item in enumerate(valid_history):
+            c_path = item.get("clip_path", "")
+            c_name = item.get("clip_name", "")
+            c_title = item.get("title", "Clip Sin Título")
+            c_start = item.get("start", 0)
+            c_end = item.get("end", 0)
+            c_desc = item.get("social_description", "")
+            c_date = item.get("created_at", "")
+            c_fmt = item.get("video_format", "9:16")
+
+            with st.container():
+                col_info, col_vid = st.columns([3, 2])
+                with col_info:
+                    st.markdown(f"### {c_title}")
+                    st.markdown(f"⏱️ **Original:** `{format_seconds_to_time(c_start)}` al `{format_seconds_to_time(c_end)}` ({c_fmt})")
+                    st.caption(f"📅 Creado el: {c_date}")
+                    st.info(f"✍️ **Copy sugerido:**\n\n{c_desc}")
+
+                    # Botones de descarga y eliminación
+                    col_b1, col_b2 = st.columns(2)
+                    with col_b1:
+                        try:
+                            with open(c_path, "rb") as f:
+                                st.download_button(
+                                    label="⬇️ Descargar",
+                                    data=f,
+                                    file_name=c_name,
+                                    mime="video/mp4",
+                                    key=f"dl_{idx}_{c_name}"
+                                )
+                        except Exception:
+                            st.error("Archivo no accesible.")
+                    with col_b2:
+                        if st.button("🗑️ Eliminar", key=f"del_{idx}_{c_name}"):
+                            # Eliminar archivo físico
+                            try:
+                                if os.path.exists(c_path):
+                                    os.remove(c_path)
+                            except Exception as e:
+                                st.warning(f"No se pudo borrar el archivo físico: {e}")
+
+                            # Eliminar del registro JSON
+                            raw_history = load_history(output_dir)
+                            raw_history = [x for x in raw_history if x.get("clip_path") != c_path]
+                            save_history(output_dir, raw_history)
+                            st.success("Clip eliminado correctamente.")
+                            st.rerun()
+                with col_vid:
+                    VIDEO_WIDTH_MAP = {"9:16": 200, "16:9": 300, "1:1": 250}
+                    player_width = VIDEO_WIDTH_MAP.get(c_fmt, 250)
+                    st.markdown(f"<div style='max-width:{player_width}px;'>", unsafe_allow_html=True)
+                    st.video(c_path)
+                    st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("---")
