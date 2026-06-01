@@ -32,7 +32,13 @@ def extract_audio(video_path, audio_path="temp_audio.wav"):
         audio_path
     ]
 
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    except FileNotFoundError as fnf:
+        raise RuntimeError(f"Error de sistema: No se pudo ejecutar el binario de FFmpeg. Verifica su disponibilidad en '{ffmpeg_bin}'.") from fnf
+    except Exception as e:
+        raise RuntimeError(f"Error crítico al intentar extraer el audio del video con FFmpeg: {e}") from e
+
     if result.returncode != 0:
         if "does not contain any stream" in result.stderr or "Output file does not contain any stream" in result.stderr:
             print("[*] No audio stream detected in video. Generating a silent audio track...")
@@ -73,15 +79,21 @@ def compress_audio_for_transcription(source_path, target_path, bitrate="32k"):
 
 def transcribe_audio(audio_path, model_size="small", language="es"):
     """Transcribes audio using faster-whisper on CPU with int8 quantization."""
-    print(f"[*] Loading whisper model '{model_size}' on CPU (int8)...")
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    try:
+        print(f"[*] Loading whisper model '{model_size}' on CPU (int8)...")
+        model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    except Exception as e:
+        raise RuntimeError(f"Error al inicializar el modelo Whisper '{model_size}' local: {e}. Revisa si tu equipo tiene suficiente memoria RAM.") from e
 
     print(f"[*] Transcribing {audio_path}...")
-    segments, info = model.transcribe(
-        audio_path,
-        language=language,
-        word_timestamps=True
-    )
+    try:
+        segments, info = model.transcribe(
+            audio_path,
+            language=language,
+            word_timestamps=True
+        )
+    except Exception as e:
+        raise RuntimeError(f"Error crítico durante el proceso de transcripción local: {e}") from e
 
     transcription_data = []
     for segment in segments:

@@ -262,14 +262,81 @@ def process_video_clip(
     ]
 
     print("[*] Running FFmpeg command for export...")
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    except FileNotFoundError as fnf:
+        raise RuntimeError(f"Error de sistema: No se pudo encontrar o ejecutar el binario de FFmpeg. Verifica su disponibilidad en '{ffmpeg_bin}'.") from fnf
+    except Exception as e:
+        raise RuntimeError(f"Error crítico al iniciar el proceso de FFmpeg para la exportación: {e}") from e
 
     if result.returncode != 0:
         print("[!] FFmpeg Error:")
         print(result.stderr)
-        raise RuntimeError("FFmpeg processing failed.")
+        raise RuntimeError(f"FFmpeg falló al procesar el video. Detalles técnicos del error:\n{result.stderr}")
 
     print(f"[+] Exported clip → {output_path}")
+    return output_path
+
+
+def mix_background_music(video_path, audio_path, volume, output_path):
+    """
+    Mixes background audio with an existing video's audio track.
+    Copies the video stream (-c:v copy) to complete the process instantly.
+    """
+    import os
+    import subprocess
+    print(f"[*] Mixing background music: {audio_path} (vol={volume}) onto {video_path}")
+    ffmpeg_bin = get_ffmpeg_path()
+    
+    # We write to a temporary file first, then replace output_path to avoid in-place edit issues.
+    temp_output = output_path + ".mixing.mp4"
+    
+    cmd = [
+        ffmpeg_bin, "-y",
+        "-i", video_path,
+        "-stream_loop", "-1", "-ss", "0", "-i", audio_path,
+        "-filter_complex", f"[0:a]volume=1.0[a0];[1:a]volume={volume:.2f}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[a]",
+        "-map", "0:v",
+        "-map", "[a]",
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        temp_output
+    ]
+    
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    except FileNotFoundError as fnf:
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
+        raise RuntimeError(f"Error de sistema: No se pudo encontrar o ejecutar el binario de FFmpeg. Verifica su disponibilidad en '{ffmpeg_bin}'.") from fnf
+    except Exception as e:
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
+        raise RuntimeError(f"Error crítico al iniciar la mezcla de audio con FFmpeg: {e}") from e
+
+    if result.returncode != 0:
+        print("[!] FFmpeg mixing error:")
+        print(result.stderr)
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
+        raise RuntimeError(f"FFmpeg falló al realizar la mezcla del audio de fondo. Detalles técnicos:\n{result.stderr}")
+        
+    # Replace the original file safely
+    if os.path.exists(output_path):
+        try:
+            os.remove(output_path)
+        except Exception as e:
+            print(f"[!] Warning: could not remove original path during mix: {e}")
+    try:
+        os.rename(temp_output, output_path)
+    except Exception as e:
+        # If replace fails due to locks, try copying it instead
+        import shutil
+        shutil.copy2(temp_output, output_path)
+        os.remove(temp_output)
+        
+    print(f"[+] Mixing completed → {output_path}")
     return output_path
 
 

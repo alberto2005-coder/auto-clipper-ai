@@ -5,7 +5,7 @@ import tempfile
 from transcriber import extract_audio, transcribe_audio
 from analyzer import select_best_moments_with_llm
 from subtitle_generator import generate_ass_subtitles, SUBTITLE_STYLES, AVAILABLE_FONTS
-from video_editor import process_video_clip, compute_title_info, TITLE_STYLES, TITLE_FONTS
+from video_editor import process_video_clip, compute_title_info, TITLE_STYLES, TITLE_FONTS, mix_background_music
 import json
 import datetime
 
@@ -471,6 +471,42 @@ with tab_proc:
                             social_desc = clip.get("social_description", "¡Mira este clip!")
                             st.info(f"✍️ **Copy sugerido:**\n\n{social_desc}")
 
+                            with st.expander("🎵 Mezclar Música de Fondo"):
+                                sub_audio_file = st.file_uploader(
+                                    "Audio (.mp3, .wav, .m4a, .aac, .ogg)",
+                                    type=["mp3", "wav", "m4a", "aac", "ogg"],
+                                    key=f"audio_proc_{idx}_{safe_title}"
+                                )
+                                sub_audio_vol = st.slider(
+                                    "Volumen de la música",
+                                    min_value=0.01, max_value=0.50, value=0.10, step=0.01,
+                                    key=f"vol_proc_{idx}_{safe_title}"
+                                )
+                                if st.button("🎛️ Combinar Audio", key=f"btn_proc_{idx}_{safe_title}"):
+                                    if sub_audio_file is not None:
+                                        import uuid
+                                        temp_sub_path = os.path.join(
+                                            tempfile.gettempdir(),
+                                            f"temp_sub_{uuid.uuid4().hex}_{sub_audio_file.name}"
+                                        )
+                                        with open(temp_sub_path, "wb") as f_sub:
+                                            f_sub.write(sub_audio_file.read())
+                                        
+                                        with st.spinner("Mezclando audio..."):
+                                            try:
+                                                mix_background_music(
+                                                    clip_path, temp_sub_path, sub_audio_vol, clip_path
+                                                )
+                                                st.success("¡Música mezclada con éxito!")
+                                                st.rerun()
+                                            except Exception as mix_err:
+                                                st.error(f"Error mezclando: {mix_err}")
+                                            finally:
+                                                if os.path.exists(temp_sub_path):
+                                                    os.remove(temp_sub_path)
+                                    else:
+                                        st.warning("Por favor, sube un archivo de audio primero.")
+
                             with open(clip_path, "rb") as file:
                                 st.download_button(
                                     label="⬇️ Descargar Clip",
@@ -549,6 +585,42 @@ with tab_lib:
                     st.markdown(f"⏱️ **Original:** `{format_seconds_to_time(c_start)}` al `{format_seconds_to_time(c_end)}` ({c_fmt})")
                     st.caption(f"📅 Creado el: {c_date}")
                     st.info(f"✍️ **Copy sugerido:**\n\n{c_desc}")
+
+                    with st.expander("🎵 Mezclar Música de Fondo"):
+                        lib_audio_file = st.file_uploader(
+                            "Audio (.mp3, .wav, .m4a, .aac, .ogg)",
+                            type=["mp3", "wav", "m4a", "aac", "ogg"],
+                            key=f"audio_lib_{idx}_{c_name}"
+                        )
+                        lib_audio_vol = st.slider(
+                            "Volumen de la música",
+                            min_value=0.01, max_value=0.50, value=0.10, step=0.01,
+                            key=f"vol_lib_{idx}_{c_name}"
+                        )
+                        if st.button("🎛️ Combinar Audio", key=f"btn_lib_{idx}_{c_name}"):
+                            if lib_audio_file is not None:
+                                import uuid
+                                temp_lib_path = os.path.join(
+                                    tempfile.gettempdir(),
+                                    f"temp_lib_{uuid.uuid4().hex}_{lib_audio_file.name}"
+                                )
+                                with open(temp_lib_path, "wb") as f_lib:
+                                    f_lib.write(lib_audio_file.read())
+                                
+                                with st.spinner("Mezclando audio..."):
+                                    try:
+                                        mix_background_music(
+                                            c_path, temp_lib_path, lib_audio_vol, c_path
+                                        )
+                                        st.success("¡Música mezclada con éxito!")
+                                        st.rerun()
+                                    except Exception as mix_err:
+                                        st.error(f"Error mezclando: {mix_err}")
+                                    finally:
+                                        if os.path.exists(temp_lib_path):
+                                            os.remove(temp_lib_path)
+                            else:
+                                st.warning("Por favor, sube un archivo de audio primero.")
 
                     # Botones de descarga y eliminación
                     col_b1, col_b2 = st.columns(2)
