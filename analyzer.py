@@ -17,7 +17,7 @@ def analyze_audio_energy(audio_path, segment_duration=1.0):
         print(f"[!] Warning: Librosa analysis failed ({e}). Proceeding without audio energy analysis.")
         return []
 
-def select_best_moments_with_llm(transcription_data, provider="ollama", api_url="http://localhost:11434/api/generate", api_key=None, model="llama3.2:3b", max_clips=3):
+def select_best_moments_with_llm(transcription_data, provider="ollama", api_url="http://localhost:11434/api/generate", api_key=None, model="llama3.2:3b", max_clips=3, clip_type="virales, entretenidos, informativos o con un gancho (hook) muy fuerte"):
     """Uses Ollama or OpenAI-compatible API to identify highly engaging moments/hooks."""
     if not transcription_data:
         print("[*] No speech found in video (empty transcription). Creating a default 10-second clip.")
@@ -60,7 +60,7 @@ def select_best_moments_with_llm(transcription_data, provider="ollama", api_url=
     
     prompt = f"""
 
-Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar los momentos más virales, entretenidos, informativos o con un gancho (hook) muy fuerte en este video largo.
+Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar momentos que sean del tipo: {clip_type} en este video largo.
 
 Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y {max_clips} segmentos idóneos para convertirlos en videos cortos.
 
@@ -136,7 +136,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
                 truncated_context = context_text[:3000]
                 truncated_prompt = """
 
-Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar los momentos más virales, entretenidos, informativos o con un gancho (hook) muy fuerte en este video largo.
+Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar momentos que sean del tipo: {clip_type} en este video largo.
 
 Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y {max_clips} segmentos idóneos para convertirlos en videos cortos.
 
@@ -164,7 +164,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
     "explanation": "Por qué este momento es viral"
   }}
 ]
-""".format(truncated=truncated_context, max_clips=max_clips)
+""".format(truncated=truncated_context, max_clips=max_clips, clip_type=clip_type)
 
                 payload_trunc = {
                     "model": model,

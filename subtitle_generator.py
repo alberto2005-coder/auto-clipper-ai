@@ -63,6 +63,16 @@ SUBTITLE_STYLES = {
         "border_sty": 1,
         "highlight":  "&H00FFFFFF",  # white highlight
     },
+    "capcut": {
+        "label": "🎬 CapCut (letra blanca + borde y sombra)",
+        "primary":    "&H00FFFFFF",  # white text
+        "outline":    "&H00000000",  # black outline
+        "back":       "&H00000000",
+        "border_w":   5,
+        "shadow_w":   2,             # drop shadow
+        "border_sty": 1,
+        "highlight":  "&H0000FFFF",  # yellow active word highlight
+    },
 }
 
 # Fonts that are reliable on Windows systems

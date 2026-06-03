@@ -234,6 +234,11 @@ max_clips = st.sidebar.slider(
     min_value=1, max_value=10, value=3, step=1,
     help="Indica a la IA cuántos clips virales como máximo debe buscar."
 )
+clip_type = st.sidebar.text_input(
+    "Tipo de clips a buscar",
+    value="virales, entretenidos, informativos o con un gancho (hook) muy fuerte",
+    help="Indica qué tipo de contenido o tono debe buscar la IA (por ejemplo: 'polémicos', 'graciosos', 'educativos', 'momentos de tensión')."
+)
 
 # Resolve API URL
 api_url = "http://localhost:11434/api/generate"
@@ -346,7 +351,8 @@ with tab_proc:
                     api_url=api_url,
                     api_key=api_key if api_key else None,
                     model=llm_model,
-                    max_clips=max_clips
+                    max_clips=max_clips,
+                    clip_type=clip_type
                 )
 
                 status_area.write(f"✅ Se encontraron {len(clips)} momentos. Creando clips...")

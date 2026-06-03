@@ -17,6 +17,7 @@ def main():
     parser.add_argument("--api_url", default="http://localhost:11434/api/generate", help="URL de la API de Ollama o OpenAI")
     parser.add_argument("--api_key", default=None, help="API Key si se usa proveedor OpenAI o Groq")
     parser.add_argument("--llm_model", default="llama3.2:3b", help="Modelo de LLM a usar en Ollama, OpenAI o Groq")
+    parser.add_argument("--clip_type", default="virales, entretenidos, informativos o con un gancho (hook) muy fuerte", help="Tipo de clips a buscar (ej: polémicos, educativos, etc.)")
     
     args = parser.parse_args()
     
@@ -61,7 +62,8 @@ def main():
             provider=provider,
             api_url=api_url,
             api_key=api_key,
-            model=llm_model
+            model=llm_model,
+            clip_type=args.clip_type
         )
 
         
