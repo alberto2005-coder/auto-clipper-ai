@@ -21,7 +21,7 @@ SUBTITLE_STYLES = {
         "border_w":   6,
         "shadow_w":   0,
         "border_sty": 1,
-        "highlight":  "&H00FFFF",    # cyan highlight for active word
+        "highlight":  "&H00FFFF00",  # cyan highlight for active word
     },
     "brillo": {
         "label": "✨ Brillo (Amarillo Neón + Borde y Sombra)",

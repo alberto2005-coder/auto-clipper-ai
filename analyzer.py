@@ -68,6 +68,11 @@ def select_best_moments_with_llm(transcription_data, provider="ollama", api_url=
                 else:
                     all_clips.extend(chunk_clips)
             
+            # Discard fallback/default clips if we found at least one real clip in any chunk
+            real_clips = [c for c in all_clips if not ("Clip de Muestra" in c.get("hook_title", "") or c.get("explanation") == "Fallback")]
+            if real_clips:
+                all_clips = real_clips
+
             all_clips = sorted(all_clips, key=lambda x: x.get("start", 0.0))
             if len(all_clips) > max_clips:
                 all_clips = all_clips[:max_clips]
