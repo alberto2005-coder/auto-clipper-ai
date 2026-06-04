@@ -246,6 +246,11 @@ max_clips = st.sidebar.slider(
     min_value=1, max_value=20, value=20, step=1,
     help="Indica a la IA cuántos clips virales como máximo debe buscar."
 )
+min_clips = st.sidebar.slider(
+    "Número mínimo de clips a generar",
+    min_value=1, max_value=max_clips, value=min(3, max_clips), step=1,
+    help="Garantiza que la IA busque y extraiga al menos esta cantidad de clips si el video tiene suficiente duración."
+)
 clip_type = st.sidebar.text_input(
     "Tipo de clips a buscar",
     value="virales, entretenidos, informativos o con un gancho (hook) muy fuerte",
@@ -364,6 +369,7 @@ with tab_proc:
                     api_key=api_key if api_key else None,
                     model=llm_model,
                     max_clips=max_clips,
+                    min_clips=min_clips,
                     clip_type=clip_type
                 )
 

@@ -17,11 +17,61 @@ def analyze_audio_energy(audio_path, segment_duration=1.0):
         print(f"[!] Warning: Librosa analysis failed ({e}). Proceeding without audio energy analysis.")
         return []
 
-def select_best_moments_with_llm(transcription_data, provider="ollama", api_url="http://localhost:11434/api/generate", api_key=None, model="llama3.2:3b", max_clips=3, clip_type="virales, entretenidos, informativos o con un gancho (hook) muy fuerte"):
+def select_best_moments_with_llm(transcription_data, provider="ollama", api_url="http://localhost:11434/api/generate", api_key=None, model="llama3.2:3b", max_clips=3, min_clips=1, clip_type="virales, entretenidos, informativos o con un gancho (hook) muy fuerte", bypass_chunking=False):
     """Uses Ollama or OpenAI-compatible API to identify highly engaging moments/hooks."""
     if not transcription_data:
         print("[*] No speech found in video (empty transcription). Creating a default 10-second clip.")
         return [{"start": 0.0, "end": 10.0, "hook_title": "Clip de Muestra (Sin voz)", "explanation": "Mute video fallback"}]
+
+    # Chunking logic for long videos
+    if not bypass_chunking:
+        total_duration = max(seg.get("end", 0.0) for seg in transcription_data)
+        CHUNK_SIZE = 900.0  # 15 minutes
+        if total_duration > CHUNK_SIZE:
+            print(f"[*] Video duration ({total_duration:.1f}s) is long. Splitting into {CHUNK_SIZE}s chunks...")
+            num_chunks = int(np.ceil(total_duration / CHUNK_SIZE))
+            all_clips = []
+            
+            chunk_max_clips = max(1, int(np.ceil(max_clips / num_chunks)))
+            chunk_min_clips = max(1, int(np.ceil(min_clips / num_chunks)))
+            
+            for i in range(num_chunks):
+                chunk_start = i * CHUNK_SIZE
+                chunk_end = (i + 1) * CHUNK_SIZE
+                
+                chunk_transcription = []
+                for seg in transcription_data:
+                    seg_start = seg.get("start", 0.0)
+                    seg_end = seg.get("end", seg_start)
+                    if seg_start < chunk_end and seg_end >= chunk_start:
+                        chunk_transcription.append(seg)
+                
+                if not chunk_transcription:
+                    continue
+                    
+                print(f"[*] Analyzing chunk {i+1}/{num_chunks} ({chunk_start:.1f}s - {chunk_end:.1f}s)...")
+                chunk_clips = select_best_moments_with_llm(
+                    chunk_transcription,
+                    provider=provider,
+                    api_url=api_url,
+                    api_key=api_key,
+                    model=model,
+                    max_clips=chunk_max_clips,
+                    min_clips=chunk_min_clips,
+                    clip_type=clip_type,
+                    bypass_chunking=True
+                )
+                
+                filtered_chunk_clips = [c for c in chunk_clips if not ("Clip de Muestra" in c.get("hook_title", "") or c.get("explanation") == "Fallback")]
+                if filtered_chunk_clips:
+                    all_clips.extend(filtered_chunk_clips)
+                else:
+                    all_clips.extend(chunk_clips)
+            
+            all_clips = sorted(all_clips, key=lambda x: x.get("start", 0.0))
+            if len(all_clips) > max_clips:
+                all_clips = all_clips[:max_clips]
+            return all_clips
         
     print(f"[*] Analyzing transcription for key moments using LLM ({provider} - {model})...")
 

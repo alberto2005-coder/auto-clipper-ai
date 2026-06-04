@@ -20,6 +20,8 @@ def main():
     parser.add_argument("--clip_type", default="virales, entretenidos, informativos o con un gancho (hook) muy fuerte", help="Tipo de clips a buscar (ej: polémicos, educativos, etc.)")
     parser.add_argument("--camera_tracking", action="store_true", help="Habilitar el seguimiento de rostro inteligente para re-encuadre vertical")
     parser.add_argument("--fade_effect", action="store_true", help="Habilitar la animación de entrada/salida (transiciones fade) en los clips")
+    parser.add_argument("--max_clips", type=int, default=10, help="Número máximo de clips a generar")
+    parser.add_argument("--min_clips", type=int, default=3, help="Número mínimo de clips a generar")
     
     args = parser.parse_args()
     
@@ -65,6 +67,8 @@ def main():
             api_url=api_url,
             api_key=api_key,
             model=llm_model,
+            max_clips=args.max_clips,
+            min_clips=args.min_clips,
             clip_type=args.clip_type
         )
 
