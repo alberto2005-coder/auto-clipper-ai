@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--fade_effect", action="store_true", help="Habilitar la animación de entrada/salida (transiciones fade) en los clips")
     parser.add_argument("--max_clips", type=int, default=10, help="Número máximo de clips a generar")
     parser.add_argument("--min_clips", type=int, default=3, help="Número mínimo de clips a generar")
+    parser.add_argument("--use_gpu", action="store_true", help="Habilitar aceleración por GPU (NVIDIA CUDA) para transcripción y renderizado")
     
     args = parser.parse_args()
     
@@ -58,7 +59,7 @@ def main():
         extract_audio(args.video_path, temp_audio)
         
                             
-        transcription_data = transcribe_audio(temp_audio, model_size=args.model, language=args.lang)
+        transcription_data = transcribe_audio(temp_audio, model_size=args.model, language=args.lang, use_gpu=args.use_gpu)
         
                                             
         clips = select_best_moments_with_llm(
@@ -95,7 +96,8 @@ def main():
             process_video_clip(
                 args.video_path, start, end, ass_path, clip_output_path,
                 camera_tracking=args.camera_tracking,
-                fade_effect=args.fade_effect
+                fade_effect=args.fade_effect,
+                use_gpu=args.use_gpu
             )
             
         print(f"\n[+] Proceso completado con éxito. Clips guardados en: {args.output_dir}")

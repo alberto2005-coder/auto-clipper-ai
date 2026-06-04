@@ -191,20 +191,34 @@ def detect_face_center(video_path, start_time, end_time, sample_rate=1.0):
     start_frame = max(0, min(start_frame, total_frames - 1))
     end_frame = max(start_frame, min(end_frame, total_frames))
     
-    step = max(1, int(fps * sample_rate))
+    # Sample exactly 8 frames evenly spaced to optimize performance (avoiding too many slow seeking operations)
+    num_samples = 8
+    frame_indices = [int(x) for x in np.linspace(start_frame, end_frame - 1, num_samples)]
     face_x_positions = []
     
-    for frame_idx in range(start_frame, end_frame, step):
+    for frame_idx in frame_indices:
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
         ret, frame = cap.read()
         if not ret:
             break
             
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(60, 60))
+        # Downscale frame for speed up (scale height to 360px)
+        h, w = frame.shape[:2]
+        if w > 640:
+            scale = 360.0 / h
+            target_w = int(w * scale)
+            target_h = 360
+            small_frame = cv2.resize(frame, (target_w, target_h))
+            x_scale = w / target_w
+        else:
+            small_frame = frame
+            x_scale = 1.0
+
+        gray = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
         
-        for (x, y, w, h) in faces:
-            face_center_x = x + w / 2
+        for (x, y, w_face, h_face) in faces:
+            face_center_x = (x + w_face / 2) * x_scale
             face_x_positions.append(face_center_x)
             break
 
@@ -236,6 +250,7 @@ def process_video_clip(
     subtitle_position="bottom",
     camera_tracking=False,
     fade_effect=False,
+    use_gpu=False,
 ):
     """
     Cuts, re-frames, burns the hook title and ASS subtitles onto a video clip.
@@ -249,6 +264,7 @@ def process_video_clip(
     subtitle_position: "top" | "center" | "bottom"
     camera_tracking : Centrar la cámara en el rostro detectado (si es horizontal y pasa a vertical/cuadrado).
     fade_effect     : Animación de entrada y salida (transición de desvanecimiento).
+    use_gpu         : Habilitar codificación por hardware usando la GPU (NVIDIA h264_nvenc).
     """
     duration = end_time - start_time
     print(
@@ -360,10 +376,17 @@ def process_video_clip(
     if audio_filters:
         cmd.extend(["-af", ",".join(audio_filters)])
 
+    v_codec = "h264_nvenc" if use_gpu else "libx264"
+    preset = "fast" if use_gpu else "veryfast"
+    
     cmd.extend([
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-crf", "22",
+        "-c:v", v_codec,
+        "-preset", preset,
+    ])
+    if not use_gpu:
+        cmd.extend(["-crf", "22"])
+
+    cmd.extend([
         "-c:a", "aac",
         "-b:a", "192k",
         output_path
@@ -378,9 +401,36 @@ def process_video_clip(
         raise RuntimeError(f"Error crítico al iniciar el proceso de FFmpeg para la exportación: {e}") from e
 
     if result.returncode != 0:
-        print("[!] FFmpeg Error:")
-        print(result.stderr)
-        raise RuntimeError(f"FFmpeg falló al procesar el video. Detalles técnicos del error:\n{result.stderr}")
+        if use_gpu:
+            print("[!] GPU acceleration failed. Re-trying video processing on CPU (libx264)...")
+            cmd_cpu = []
+            skip_next = False
+            for idx_arg, arg in enumerate(cmd):
+                if skip_next:
+                    skip_next = False
+                    continue
+                if arg == "-c:v":
+                    cmd_cpu.extend(["-c:v", "libx264"])
+                    skip_next = True
+                elif arg == "-preset":
+                    cmd_cpu.extend(["-preset", "veryfast"])
+                    skip_next = True
+                else:
+                    cmd_cpu.append(arg)
+            # Insert -crf 22 right before the output path (last element)
+            output_idx = len(cmd_cpu) - 1
+            cmd_cpu.insert(output_idx, "-crf")
+            cmd_cpu.insert(output_idx + 1, "22")
+            
+            result = subprocess.run(cmd_cpu, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if result.returncode != 0:
+                print("[!] FFmpeg CPU Fallback Error:")
+                print(result.stderr)
+                raise RuntimeError(f"FFmpeg falló al procesar el video en CPU. Detalles técnicos del error:\n{result.stderr}")
+        else:
+            print("[!] FFmpeg Error:")
+            print(result.stderr)
+            raise RuntimeError(f"FFmpeg falló al procesar el video. Detalles técnicos del error:\n{result.stderr}")
 
     print(f"[+] Exported clip → {output_path}")
     return output_path

@@ -77,13 +77,22 @@ def compress_audio_for_transcription(source_path, target_path, bitrate="32k"):
     return target_path
 
 
-def transcribe_audio(audio_path, model_size="small", language="es"):
-    """Transcribes audio using faster-whisper on CPU with int8 quantization."""
+def transcribe_audio(audio_path, model_size="small", language="es", use_gpu=False):
+    """Transcribes audio using faster-whisper on CPU or GPU."""
+    device = "cuda" if use_gpu else "cpu"
+    compute_type = "float16" if use_gpu else "int8"
     try:
-        print(f"[*] Loading whisper model '{model_size}' on CPU (int8)...")
-        model = WhisperModel(model_size, device="cpu", compute_type="int8")
+        print(f"[*] Loading whisper model '{model_size}' on {device} ({compute_type})...")
+        model = WhisperModel(model_size, device=device, compute_type=compute_type)
     except Exception as e:
-        raise RuntimeError(f"Error al inicializar el modelo Whisper '{model_size}' local: {e}. Revisa si tu equipo tiene suficiente memoria RAM.") from e
+        if use_gpu:
+            print(f"[!] Warning: CUDA initialization failed ({e}). Falling back to CPU...")
+            try:
+                model = WhisperModel(model_size, device="cpu", compute_type="int8")
+            except Exception as e2:
+                raise RuntimeError(f"Error al inicializar el modelo Whisper '{model_size}' local en CPU: {e2}.") from e2
+        else:
+            raise RuntimeError(f"Error al inicializar el modelo Whisper '{model_size}' local: {e}. Revisa si tu equipo tiene suficiente memoria RAM.") from e
 
     print(f"[*] Transcribing {audio_path}...")
     try:

@@ -103,6 +103,12 @@ use_cloud_transcription = st.sidebar.checkbox(
     help="Transcribe en segundos con Groq/OpenAI. Ideal para videos largos (> 5 min)."
 )
 
+use_gpu = st.sidebar.checkbox(
+    "🚀 Usar aceleración por GPU (NVIDIA CUDA)",
+    value=False,
+    help="Utiliza la GPU para una transcripción local y renderizado de video ultra rápidos. Si falla o no tienes hardware compatible con CUDA, automáticamente volverá a CPU sin detener el programa."
+)
+
 st.sidebar.markdown("---")
 
 # ── 🎞️ Formato de video ───────────────────────────────────────────────────────
@@ -356,7 +362,7 @@ with tab_proc:
                     status_area.write("⏳ Paso 2: Transcribiendo localmente con Whisper...")
                     progress_bar.progress(30)
                     transcription_data = transcribe_audio(
-                        temp_audio, model_size=whisper_model, language=lang
+                        temp_audio, model_size=whisper_model, language=lang, use_gpu=use_gpu
                     )
 
                 # ── Paso 3: IA selecciona momentos ────────────────────────────
@@ -409,10 +415,8 @@ with tab_proc:
                             margin_override=subtitle_margin_override,
                         )
 
-                    # ── Procesar clip con FFmpeg ───────────────────────────────
-                    status_area.write(
-                        f"🎬 Procesando {idx+1}/{len(clips)}: '{clip_title}'..."
-                    )
+                    progress_percent = int(75 + 25 * (idx / len(clips)))
+                    progress_bar.progress(progress_percent)
                     process_video_clip(
                         video_to_process, start, end, ass_path, clip_output_path,
                         video_format=video_format,
@@ -424,6 +428,7 @@ with tab_proc:
                         subtitle_position=subtitle_position,
                         camera_tracking=camera_tracking,
                         fade_effect=fade_effect,
+                        use_gpu=use_gpu,
                     )
 
                 progress_bar.progress(100)
