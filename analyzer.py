@@ -125,6 +125,10 @@ IMPORTANTE PARA LOS TÍTULOS Y DESCRIPCIONES:
 - Usa intriga, preguntas directas o afirmaciones contundentes. Ejemplo malo de IA: "El Secreto Para Ser Millonario". Ejemplo bueno humano: "Por esto no eres millonario a los 20".
 - Proporciona también una breve descripción para redes sociales que actúe como copy de enganche.
 
+EVALUACIÓN DE VIRALIDAD (ESTILO OPUS CLIP):
+- Para cada clip, evalúa su potencial de viralidad y asígnale un "virality_score" (entero del 0 al 100).
+- Proporciona una explicación concisa llamada "virality_explanation" detallando por qué tiene esa puntuación (ej: "Hook muy fuerte en los primeros 3 segundos, mantiene el ritmo dinámico y trata un tema controversial de interés general").
+
 Transcripción:
 {context_text}
 
@@ -135,6 +139,8 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
     "end": float,
     "hook_title": "Título humano y viral",
     "social_description": "Copywriting para la descripción del video",
+    "virality_score": int,
+    "virality_explanation": "Explicación detallada de por qué enganchará a la audiencia",
     "explanation": "Por qué este momento es viral"
   }}
 ]
@@ -201,6 +207,10 @@ IMPORTANTE PARA LOS TÍTULOS Y DESCRIPCIONES:
 - Usa intriga, preguntas directas o afirmaciones contundentes. Ejemplo malo de IA: "El Secreto Para Ser Millonario". Ejemplo bueno humano: "Por esto no eres millonario a los 20".
 - Proporciona también una breve descripción para redes sociales que actúe como copy de enganche.
 
+EVALUACIÓN DE VIRALIDAD (ESTILO OPUS CLIP):
+- Para cada clip, evalúa su potencial de viralidad y asígnale un "virality_score" (entero del 0 al 100).
+- Proporciona una explicación concisa llamada "virality_explanation" detallando por qué tiene esa puntuación (ej: "Hook muy fuerte en los primeros 3 segundos, mantiene el ritmo dinámico y trata un tema controversial de interés general").
+
 Transcripción:
 {truncated}
 
@@ -211,6 +221,8 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
     "end": float,
     "hook_title": "Título humano y viral",
     "social_description": "Copywriting para la descripción del video",
+    "virality_score": int,
+    "virality_explanation": "Explicación detallada de por qué enganchará a la audiencia",
     "explanation": "Por qué este momento es viral"
   }}
 ]
@@ -305,6 +317,25 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
                     break
             if "social_description" not in normalized_item:
                 normalized_item["social_description"] = item.get("explanation", "Mira este increíble momento.")
+
+            # Virality score mapping
+            for score_key in ["virality_score", "viralityScore", "score", "puntuacion"]:
+                if score_key in item:
+                    try:
+                        normalized_item["virality_score"] = int(item[score_key])
+                        break
+                    except (ValueError, TypeError):
+                        pass
+            if "virality_score" not in normalized_item:
+                normalized_item["virality_score"] = 85
+
+            # Virality explanation mapping
+            for vex_key in ["virality_explanation", "viralityExplanation", "reason"]:
+                if vex_key in item:
+                    normalized_item["virality_explanation"] = str(item[vex_key])
+                    break
+            if "virality_explanation" not in normalized_item:
+                normalized_item["virality_explanation"] = item.get("explanation", "Estructura narrativa sólida y gancho inicial de impacto.")
                                              
                                                                                                  
                                                                               

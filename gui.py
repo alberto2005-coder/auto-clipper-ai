@@ -38,6 +38,21 @@ def save_history(output_dir, history):
         print(f"Error saving history: {e}")
 
 
+def render_virality_badge(score, explanation):
+    color = "#FF4B4B" if score < 75 else ("#FF8F00" if score < 90 else "#00C853")
+    level = "Bajo" if score < 75 else ("Bueno" if score < 90 else "Excelente")
+    st.markdown(f"""
+    <div style='background-color: #1E1E1E; border-radius: 12px; padding: 12px; margin-bottom: 12px; border-left: 5px solid {color}; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+        <div style='display: flex; align-items: center; justify-content: space-between;'>
+            <span style='color: #888; font-size: 0.85rem; font-weight: bold;'>SCORE DE VIRALIDAD</span>
+            <span style='background-color: {color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;'>{level}</span>
+        </div>
+        <div style='font-size: 1.8rem; font-weight: bold; color: {color}; margin: 5px 0;'>🔥 {score}/100</div>
+        <div style='color: #DDD; font-size: 0.85rem; line-height: 1.3;'>{explanation}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # ─── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Auto-Clipper AI",
@@ -454,6 +469,8 @@ with tab_proc:
                                 "start": clip.get("start", 0),
                                 "end": clip.get("end", 0),
                                 "social_description": clip.get("social_description", ""),
+                                "virality_score": clip.get("virality_score", 85),
+                                "virality_explanation": clip.get("virality_explanation", "Estructura narrativa sólida y gancho inicial de impacto."),
                                 "created_at": now_str,
                                 "video_format": video_format
                             })
@@ -492,6 +509,7 @@ with tab_proc:
                             st.markdown(f"### {clip_title}")
                             st.markdown(f"⏱️ **Original:** `{format_seconds_to_time(start)}` al `{format_seconds_to_time(end)}`")
                             st.caption(FORMAT_LABELS.get(video_format, video_format))
+                            render_virality_badge(clip.get("virality_score", 85), clip.get("virality_explanation", "Excelente gancho y estructura narrativa."))
                             with st.expander("📺 Reproducir Clip Video", expanded=False):
                                 st.video(clip_path)
 
@@ -611,6 +629,7 @@ with tab_lib:
                     st.markdown(f"### {c_title}")
                     st.markdown(f"⏱️ **Original:** `{format_seconds_to_time(c_start)}` al `{format_seconds_to_time(c_end)}` ({c_fmt})")
                     st.caption(f"📅 Creado el: {c_date}")
+                    render_virality_badge(item.get("virality_score", 85), item.get("virality_explanation", "Estructura narrativa sólida y gancho inicial de impacto."))
                     st.info(f"✍️ **Copy sugerido:**\n\n{c_desc}")
 
                     with st.expander("🎵 Mezclar Música de Fondo"):
