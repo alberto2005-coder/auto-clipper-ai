@@ -101,27 +101,56 @@ def transcribe_audio(audio_path, model_size="small", language="es", use_gpu=Fals
             language=language,
             word_timestamps=True
         )
+        transcription_data = []
+        for segment in segments:
+            segment_words = []
+            if segment.words:
+                for word in segment.words:
+                    segment_words.append({
+                        "word": word.word,
+                        "start": word.start,
+                        "end": word.end,
+                        "probability": word.probability
+                    })
+
+            transcription_data.append({
+                "start": segment.start,
+                "end": segment.end,
+                "text": segment.text.strip(),
+                "words": segment_words
+            })
     except Exception as e:
-        raise RuntimeError(f"Error crítico durante el proceso de transcripción local: {e}") from e
+        if device == "cuda":
+            print(f"[!] Warning: Error during CUDA transcription ({e}). Falling back to CPU...")
+            try:
+                model = WhisperModel(model_size, device="cpu", compute_type="int8")
+                segments, info = model.transcribe(
+                    audio_path,
+                    language=language,
+                    word_timestamps=True
+                )
+                transcription_data = []
+                for segment in segments:
+                    segment_words = []
+                    if segment.words:
+                        for word in segment.words:
+                            segment_words.append({
+                                "word": word.word,
+                                "start": word.start,
+                                "end": word.end,
+                                "probability": word.probability
+                            })
 
-    transcription_data = []
-    for segment in segments:
-        segment_words = []
-        if segment.words:
-            for word in segment.words:
-                segment_words.append({
-                    "word": word.word,
-                    "start": word.start,
-                    "end": word.end,
-                    "probability": word.probability
-                })
-
-        transcription_data.append({
-            "start": segment.start,
-            "end": segment.end,
-            "text": segment.text.strip(),
-            "words": segment_words
-        })
+                    transcription_data.append({
+                        "start": segment.start,
+                        "end": segment.end,
+                        "text": segment.text.strip(),
+                        "words": segment_words
+                    })
+            except Exception as e2:
+                raise RuntimeError(f"Error crítico en fallback a CPU durante transcripción: {e2}") from e2
+        else:
+            raise RuntimeError(f"Error crítico durante el proceso de transcripción local: {e}") from e
 
     return transcription_data
 

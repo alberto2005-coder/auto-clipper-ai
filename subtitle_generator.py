@@ -28,7 +28,7 @@ SUBTITLE_STYLES = {
         "primary":    "&H0000FFFF",  # Yellow
         "outline":    "&H00000000",  # Black
         "back":       "&H0000FFFF",  # Yellow shadow/glow
-        "border_w":   6,
+        "border_w":   3,
         "shadow_w":   4,
         "border_sty": 1,
         "highlight":  "&H0000FF00",  # Bright Green highlight
@@ -58,8 +58,8 @@ SUBTITLE_STYLES = {
         "primary":    "&H0000FFFF",  # yellow (BGRformat: FF FF 00)
         "outline":    "&H00000000",
         "back":       "&H00000000",
-        "border_w":   5,
-        "shadow_w":   1,
+        "border_w":   3,
+        "shadow_w":   4,
         "border_sty": 1,
         "highlight":  "&H000000FF",  # red highlight
     },
@@ -78,8 +78,8 @@ SUBTITLE_STYLES = {
         "primary":    "&H00FFFFFF",  # white text
         "outline":    "&H00000000",  # black outline
         "back":       "&H00000000",
-        "border_w":   5,
-        "shadow_w":   2,             # drop shadow
+        "border_w":   3,
+        "shadow_w":   4,             # drop shadow
         "border_sty": 1,
         "highlight":  "&H0000FFFF",  # yellow active word highlight
     },
@@ -110,6 +110,12 @@ def format_timestamp(seconds):
     return f"{hours}:{minutes:02d}:{secs:02d}.{centiseconds:02d}"
 
 
+def to_inline_color(ass_color):
+    """Converts a standard ASS color (e.g. &H00AABBCC) to a 6-hex-digit BGR string (e.g. BBCCAA) for inline tags."""
+    clean = ass_color.replace("&H", "").replace("&", "")
+    return clean[-6:]
+
+
 def generate_ass_subtitles(
     transcription_data,
     clip_start,
@@ -137,6 +143,11 @@ def generate_ass_subtitles(
         f"[*] Generating ASS subtitles | pos={subtitle_position} | "
         f"font={font_name} {font_size}pt | style={subtitle_style}"
     )
+    try:
+        with open("debug_log.txt", "a", encoding="utf-8") as dbg:
+            dbg.write(f"style={subtitle_style} | pos={subtitle_position} | font={font_name} | size={font_size}\n")
+    except Exception:
+        pass
 
     # ── Position mapping ─────────────────────────────────────────────────────
     # ASS Alignment numpad layout:
@@ -194,6 +205,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     n_words = len(all_words)
     chunk_size = 3
     highlight_color = style["highlight"]
+    high_rgb = to_inline_color(highlight_color)
+    prim_rgb = to_inline_color(style["primary"])
 
     for i in range(n_words):
         current_word = all_words[i]
@@ -214,7 +227,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if w == current_word:
                 # Highlighted active word
                 formatted_words.append(
-                    f"{{\\c{highlight_color}&}}{w['word']}{{\\c{style['primary']}&}}"
+                    f"{{\\c&H{high_rgb}&}}{w['word']}{{\\c&H{prim_rgb}&}}"
                 )
             else:
                 formatted_words.append(w["word"])

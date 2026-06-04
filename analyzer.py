@@ -49,6 +49,11 @@ def select_best_moments_with_llm(transcription_data, provider="ollama", api_url=
                 if not chunk_transcription:
                     continue
                     
+                if i > 0:
+                    import time
+                    print("[*] Waiting 3 seconds before next chunk to avoid API rate limits...")
+                    time.sleep(3.0)
+
                 print(f"[*] Analyzing chunk {i+1}/{num_chunks} ({chunk_start:.1f}s - {chunk_end:.1f}s)...")
                 chunk_clips = select_best_moments_with_llm(
                     chunk_transcription,

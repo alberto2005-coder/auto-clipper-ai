@@ -406,7 +406,7 @@ with tab_proc:
                         c for c in clip_title.replace(" ", "_").lower()
                         if c.isalnum() or c in ("_", "-")
                     )
-                    clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
+                    clip_output_name = f"clip_{idx+1}_{safe_title}_{subtitle_style_key}.mp4"
                     clip_output_path = os.path.join(output_dir, clip_output_name)
 
                     # ── Calcular offset si título y subtítulos comparten borde ──
@@ -458,7 +458,7 @@ with tab_proc:
                         c for c in clip_title.replace(" ", "_").lower()
                         if c.isalnum() or c in ("_", "-")
                     )
-                    clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
+                    clip_output_name = f"clip_{idx+1}_{safe_title}_{subtitle_style_key}.mp4"
                     clip_path        = os.path.join(output_dir, clip_output_name)
                     if os.path.exists(clip_path):
                         if not any(item.get("clip_path") == clip_path for item in history):
@@ -501,7 +501,7 @@ with tab_proc:
                         c for c in clip_title.replace(" ", "_").lower()
                         if c.isalnum() or c in ("_", "-")
                     )
-                    clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
+                    clip_output_name = f"clip_{idx+1}_{safe_title}_{subtitle_style_key}.mp4"
                     clip_path        = os.path.join(output_dir, clip_output_name)
 
                     if os.path.exists(clip_path):
