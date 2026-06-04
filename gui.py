@@ -115,6 +115,18 @@ video_format = st.sidebar.radio(
     help="**9:16** → TikTok / Shorts / Reels\n\n**16:9** → YouTube horizontal\n\n**1:1** → Instagram Feed / Twitter"
 )
 
+camera_tracking = st.sidebar.checkbox(
+    "🎥 Seguimiento inteligente de rostros",
+    value=True,
+    help="Centra la cámara automáticamente en la cara detectada en lugar de recortar el centro fijo (ideal para cambiar formato horizontal a vertical)."
+)
+
+fade_effect = st.sidebar.checkbox(
+    "🎬 Animación de Entrada/Salida (Fade)",
+    value=True,
+    help="Aplica una suave transición de desvanecimiento de video y audio al inicio y final de cada clip."
+)
+
 FORMAT_LABELS = {
     "9:16": "📱 Vertical (9:16)",
     "16:9": "🖥️ Horizontal (16:9)",
@@ -231,7 +243,7 @@ default_model = (
 llm_model = st.sidebar.text_input("Modelo de IA", default_model)
 max_clips = st.sidebar.slider(
     "Número máximo de clips a generar",
-    min_value=1, max_value=10, value=3, step=1,
+    min_value=1, max_value=20, value=20, step=1,
     help="Indica a la IA cuántos clips virales como máximo debe buscar."
 )
 clip_type = st.sidebar.text_input(
@@ -404,6 +416,8 @@ with tab_proc:
                         title_style=title_style_key,
                         title_font=title_font,
                         subtitle_position=subtitle_position,
+                        camera_tracking=camera_tracking,
+                        fade_effect=fade_effect,
                     )
 
                 progress_bar.progress(100)
@@ -467,12 +481,8 @@ with tab_proc:
                             st.markdown(f"### {clip_title}")
                             st.markdown(f"⏱️ **Original:** `{format_seconds_to_time(start)}` al `{format_seconds_to_time(end)}`")
                             st.caption(FORMAT_LABELS.get(video_format, video_format))
-                            st.markdown(
-                                f"<div style='max-width:{player_width}px;'>",
-                                unsafe_allow_html=True
-                            )
-                            st.video(clip_path)
-                            st.markdown("</div>", unsafe_allow_html=True)
+                            with st.expander("📺 Reproducir Clip Video", expanded=False):
+                                st.video(clip_path)
 
                             social_desc = clip.get("social_description", "¡Mira este clip!")
                             st.info(f"✍️ **Copy sugerido:**\n\n{social_desc}")
@@ -657,10 +667,6 @@ with tab_lib:
                             save_history(output_dir, raw_history)
                             st.success("Clip eliminado correctamente.")
                             st.rerun()
-                with col_vid:
-                    VIDEO_WIDTH_MAP = {"9:16": 200, "16:9": 300, "1:1": 250}
-                    player_width = VIDEO_WIDTH_MAP.get(c_fmt, 250)
-                    st.markdown(f"<div style='max-width:{player_width}px;'>", unsafe_allow_html=True)
-                    st.video(c_path)
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    with st.expander("📺 Reproducir Video", expanded=False):
+                        st.video(c_path)
             st.markdown("---")

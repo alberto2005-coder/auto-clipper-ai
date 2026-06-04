@@ -18,6 +18,8 @@ def main():
     parser.add_argument("--api_key", default=None, help="API Key si se usa proveedor OpenAI o Groq")
     parser.add_argument("--llm_model", default="llama3.2:3b", help="Modelo de LLM a usar en Ollama, OpenAI o Groq")
     parser.add_argument("--clip_type", default="virales, entretenidos, informativos o con un gancho (hook) muy fuerte", help="Tipo de clips a buscar (ej: polémicos, educativos, etc.)")
+    parser.add_argument("--camera_tracking", action="store_true", help="Habilitar el seguimiento de rostro inteligente para re-encuadre vertical")
+    parser.add_argument("--fade_effect", action="store_true", help="Habilitar la animación de entrada/salida (transiciones fade) en los clips")
     
     args = parser.parse_args()
     
@@ -86,7 +88,11 @@ def main():
             generate_ass_subtitles(transcription_data, start, end, ass_path)
             
                                             
-            process_video_clip(args.video_path, start, end, ass_path, clip_output_path)
+            process_video_clip(
+                args.video_path, start, end, ass_path, clip_output_path,
+                camera_tracking=args.camera_tracking,
+                fade_effect=args.fade_effect
+            )
             
         print(f"\n[+] Proceso completado con éxito. Clips guardados en: {args.output_dir}")
         

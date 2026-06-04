@@ -23,6 +23,16 @@ SUBTITLE_STYLES = {
         "border_sty": 1,
         "highlight":  "&H00FFFF",    # cyan highlight for active word
     },
+    "brillo": {
+        "label": "✨ Brillo (Amarillo Neón + Borde y Sombra)",
+        "primary":    "&H0000FFFF",  # Yellow
+        "outline":    "&H00000000",  # Black
+        "back":       "&H0000FFFF",  # Yellow shadow/glow
+        "border_w":   6,
+        "shadow_w":   4,
+        "border_sty": 1,
+        "highlight":  "&H0000FF00",  # Bright Green highlight
+    },
     "caja_blanca": {
         "label": "⬜ Caja blanca + letra negra",
         "primary":    "&H00000000",  # black text

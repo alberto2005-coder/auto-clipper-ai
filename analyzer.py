@@ -62,11 +62,11 @@ def select_best_moments_with_llm(transcription_data, provider="ollama", api_url=
 
 Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar momentos que sean del tipo: {clip_type} en este video largo.
 
-Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y {max_clips} segmentos idóneos para convertirlos en videos cortos.
+Analiza la siguiente transcripción con marcas de tiempo y selecciona la mayor cantidad posible de segmentos idóneos (idealmente hasta {max_clips} si el video es lo suficientemente largo e interesante) para convertirlos en videos cortos. Si el video es largo (por ejemplo, de 1 hora), es sumamente importante que busques y devuelvas entre 10 y 20 clips (o el máximo de {max_clips} especificado) para no dejar pasar ningún momento de valor.
 
 REGLAS OBLIGATORIAS DE DURACIÓN (MUY IMPORTANTE):
-- La duración de cada clip DEBE ser de al menos 20 segundos y máximo 60 segundos (la diferencia "end" menos "start" tiene que ser como mínimo de 20.0 segundos).
-- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos de menos de 20 segundos. No devuelvas clips de 5, 8 o 15 segundos.
+- La duración de cada clip DEBE ser de al menos 15 segundos y máximo 60 segundos (la diferencia "end" menos "start" tiene que ser como mínimo de 15.0 segundos).
+- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos de menos de 15 segundos. No devuelvas clips de 5 u 8 segundos.
 
 
 IMPORTANTE PARA LOS TÍTULOS Y DESCRIPCIONES:
@@ -138,11 +138,11 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
 
 Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo es encontrar momentos que sean del tipo: {clip_type} en este video largo.
 
-Analiza la siguiente transcripción con marcas de tiempo y selecciona entre 1 y {max_clips} segmentos idóneos para convertirlos en videos cortos.
+Analiza la siguiente transcripción con marcas de tiempo y selecciona la mayor cantidad posible de segmentos idóneos (idealmente hasta {max_clips} si el video es lo suficientemente largo e interesante) para convertirlos en videos cortos. Si el video es largo, es sumamente importante que busques y devuelvas entre 10 y 20 clips (o el máximo de {max_clips} especificado) para no dejar pasar ningún momento de valor.
 
 REGLAS OBLIGATORIAS DE DURACIÓN (MUY IMPORTANTE):
-- La duración de cada clip DEBE ser de al menos 20 segundos y máximo 60 segundos (la diferencia "end" menos "start" tiene que ser como mínimo de 20.0 segundos).
-- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos de menos de 20 segundos. No devuelvas clips de 5, 8 o 15 segundos.
+- La duración de cada clip DEBE ser de al menos 15 segundos y máximo 60 segundos (la diferencia "end" menos "start" tiene que ser como mínimo de 15.0 segundos).
+- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos de menos de 15 segundos. No devuelvas clips de 5 o 10 segundos.
 
 
 IMPORTANTE PARA LOS TÍTULOS Y DESCRIPCIONES:
@@ -258,7 +258,7 @@ Responde ÚNICAMENTE con un JSON válido de la siguiente estructura (no agregues
                                              
                                                                                                  
                                                                               
-            MIN_DURATION = 30.0
+            MIN_DURATION = 15.0
             clip_duration = normalized_item["end"] - normalized_item["start"]
             if clip_duration < MIN_DURATION:
                 diff = MIN_DURATION - clip_duration

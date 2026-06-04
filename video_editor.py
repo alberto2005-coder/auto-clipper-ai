@@ -149,6 +149,77 @@ def compute_title_info(
     return anchor_px, total_h
 
 
+def detect_face_center(video_path, start_time, end_time, sample_rate=1.0):
+    """
+    Samples frames from the video clip and uses OpenCV's Haar Cascade classifier
+    to find the average/median face X position.
+    Returns (face_x_center_ratio, width, height) where face_x_center_ratio is from 0.0 to 1.0.
+    """
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        print("[!] Warning: cv2 or numpy not found. Skipping face tracking.")
+        return 0.5, 0, 0
+
+    print(f"[*] Analyzing video for face tracking: {video_path} from {start_time}s to {end_time}s...")
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print("[!] Warning: Could not open video file with OpenCV for face tracking.")
+        return 0.5, 0, 0
+
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    if width <= 0 or height <= 0:
+        cap.release()
+        return 0.5, width, height
+
+    # Load Haar cascade
+    cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+    face_cascade = cv2.CascadeClassifier(cascade_path)
+    if face_cascade.empty():
+        print("[!] Warning: OpenCV face cascade classifier failed to load.")
+        cap.release()
+        return 0.5, width, height
+
+    start_frame = int(start_time * fps)
+    end_frame = int(end_time * fps)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    start_frame = max(0, min(start_frame, total_frames - 1))
+    end_frame = max(start_frame, min(end_frame, total_frames))
+    
+    step = max(1, int(fps * sample_rate))
+    face_x_positions = []
+    
+    for frame_idx in range(start_frame, end_frame, step):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+        ret, frame = cap.read()
+        if not ret:
+            break
+            
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(60, 60))
+        
+        for (x, y, w, h) in faces:
+            face_center_x = x + w / 2
+            face_x_positions.append(face_center_x)
+            break
+
+    cap.release()
+    
+    if face_x_positions:
+        median_x = float(np.median(face_x_positions))
+        ratio = median_x / width
+        print(f"[+] Face tracking found average X position: {median_x:.1f} (ratio: {ratio:.2f})")
+        return ratio, width, height
+    
+    print("[*] No faces detected in the sampled frames. Using center (0.5).")
+    return 0.5, width, height
+
+
 def process_video_clip(
     video_path,
     start_time,
@@ -163,6 +234,8 @@ def process_video_clip(
     title_style="clasico",
     title_font="Arial Bold",
     subtitle_position="bottom",
+    camera_tracking=False,
+    fade_effect=False,
 ):
     """
     Cuts, re-frames, burns the hook title and ASS subtitles onto a video clip.
@@ -174,25 +247,46 @@ def process_video_clip(
     title_style     : Key in TITLE_STYLES.
     title_font      : Font family name (must be installed on the system).
     subtitle_position: "top" | "center" | "bottom"
+    camera_tracking : Centrar la cámara en el rostro detectado (si es horizontal y pasa a vertical/cuadrado).
+    fade_effect     : Animación de entrada y salida (transición de desvanecimiento).
     """
     duration = end_time - start_time
     print(
         f"[*] Processing clip: {start_time}s → {end_time}s ({duration:.1f}s) | "
-        f"format: {video_format} | title_pos: {title_position} | sub_pos: {subtitle_position}"
+        f"format: {video_format} | title_pos: {title_position} | sub_pos: {subtitle_position} | "
+        f"tracking: {camera_tracking} | fade: {fade_effect}"
     )
 
     # ── 1. Crop + Scale ───────────────────────────────────────────────────────
     vid_dims = {"9:16": (1080, 1920), "16:9": (1920, 1080), "1:1": (1080, 1080)}
     vid_w, vid_h = vid_dims.get(video_format, (1080, 1920))
 
+    crop_x_expr = "(iw-ih*9/16)/2"
+    crop_1to1_x_expr = "(iw-min(iw\\,ih))/2"
+
+    if camera_tracking:
+        face_ratio, orig_w, orig_h = detect_face_center(video_path, start_time, end_time)
+        if orig_w > 0 and orig_h > 0:
+            # For 9:16: crop width is orig_h * 9 / 16
+            in_crop_w = orig_h * 9 / 16
+            ideal_x = int(face_ratio * orig_w - in_crop_w / 2)
+            clamped_x = max(0, min(ideal_x, int(orig_w - in_crop_w)))
+            crop_x_expr = str(clamped_x)
+
+            # For 1:1: crop width is min(orig_w, orig_h)
+            in_crop_1to1_w = min(orig_w, orig_h)
+            ideal_1to1_x = int(face_ratio * orig_w - in_crop_1to1_w / 2)
+            clamped_1to1_x = max(0, min(ideal_1to1_x, int(orig_w - in_crop_1to1_w)))
+            crop_1to1_x_expr = str(clamped_1to1_x)
+
     if video_format == "9:16":
-        filter_chain = "crop=ih*9/16:ih:(iw-ih*9/16)/2:0,scale=1080:1920"
+        filter_chain = f"crop=ih*9/16:ih:{crop_x_expr}:0,scale=1080:1920"
     elif video_format == "16:9":
         filter_chain = "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2"
     elif video_format == "1:1":
-        filter_chain = "crop=min(iw\\,ih):min(iw\\,ih):(iw-min(iw\\,ih))/2:(ih-min(iw\\,ih))/2,scale=1080:1080"
+        filter_chain = f"crop=min(iw\\,ih):min(iw\\,ih):{crop_1to1_x_expr}:(ih-min(iw\\,ih))/2,scale=1080:1080"
     else:
-        filter_chain = "crop=ih*9/16:ih:(iw-ih*9/16)/2:0,scale=1080:1920"
+        filter_chain = f"crop=ih*9/16:ih:{crop_x_expr}:0,scale=1080:1920"
 
     if zoom_effect:
         pass
@@ -245,6 +339,15 @@ def process_video_clip(
         escaped_ass_path = ass_path.replace("\\", "/").replace(":", "\\:")
         filter_chain += f",subtitles='{escaped_ass_path}'"
 
+    # ── 3.5. Fade animations ──────────────────────────────────────────────────
+    audio_filters = []
+    if fade_effect:
+        fade_d = 0.7
+        if duration > 2 * fade_d:
+            filter_chain += f",fade=t=in:st=0:d={fade_d},fade=t=out:st={duration - fade_d}:d={fade_d}"
+            audio_filters.append(f"afade=t=in:st=0:d={fade_d}")
+            audio_filters.append(f"afade=t=out:st={duration - fade_d}:d={fade_d}")
+
     # ── 4. FFmpeg command ─────────────────────────────────────────────────────
     ffmpeg_bin = get_ffmpeg_path()
     cmd = [
@@ -253,13 +356,18 @@ def process_video_clip(
         "-to", str(end_time),
         "-i", video_path,
         "-vf", filter_chain,
+    ]
+    if audio_filters:
+        cmd.extend(["-af", ",".join(audio_filters)])
+
+    cmd.extend([
         "-c:v", "libx264",
         "-preset", "veryfast",
         "-crf", "22",
         "-c:a", "aac",
         "-b:a", "192k",
         output_path
-    ]
+    ])
 
     print("[*] Running FFmpeg command for export...")
     try:
