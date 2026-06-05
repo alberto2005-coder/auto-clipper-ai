@@ -1,7 +1,7 @@
 [Setup]
 ; Configuracion basica del instalador
 AppName=Auto-Clipper AI
-AppVersion=1.4
+AppVersion=1.5
 AppPublisher=Alberto
 DefaultDirName={autopf}\Auto-Clipper AI
 DefaultGroupName=Auto-Clipper AI
