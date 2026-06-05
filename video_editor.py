@@ -149,11 +149,44 @@ def compute_title_info(
     return anchor_px, total_h
 
 
+def get_video_dimensions(video_path):
+    """
+    Returns (width, height) of a video file using FFprobe.
+    Falls back to (0, 0) if detection fails.
+    """
+    try:
+        import cv2
+        cap = cv2.VideoCapture(video_path)
+        if cap.isOpened():
+            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            cap.release()
+            return w, h
+    except Exception:
+        pass
+    return 0, 0
+
+
+def is_portrait_video(video_path):
+    """
+    Returns True if the source video is already in portrait/vertical orientation (height > width).
+    Camera tracking makes no sense for portrait videos being converted to 9:16.
+    """
+    w, h = get_video_dimensions(video_path)
+    if w > 0 and h > 0:
+        is_portrait = h > w
+        print(f"[*] Source video dimensions: {w}x{h} → {'portrait (tracking disabled)' if is_portrait else 'landscape'}")
+        return is_portrait
+    return False
+
+
 def detect_face_center(video_path, start_time, end_time, sample_rate=1.0):
     """
     Samples frames from the video clip and uses OpenCV's Haar Cascade classifier
     to find the average/median face X position.
     Returns (face_x_center_ratio, width, height) where face_x_center_ratio is from 0.0 to 1.0.
+    Only uses the detected position if faces are found in at least 50% of sampled frames
+    (confidence threshold), otherwise falls back to center (0.5).
     """
     try:
         import cv2
@@ -169,9 +202,9 @@ def detect_face_center(video_path, start_time, end_time, sample_rate=1.0):
         return 0.5, 0, 0
 
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    
+
     if width <= 0 or height <= 0:
         cap.release()
         return 0.5, width, height
@@ -185,52 +218,57 @@ def detect_face_center(video_path, start_time, end_time, sample_rate=1.0):
         return 0.5, width, height
 
     start_frame = int(start_time * fps)
-    end_frame = int(end_time * fps)
+    end_frame   = int(end_time * fps)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
+
     start_frame = max(0, min(start_frame, total_frames - 1))
-    end_frame = max(start_frame, min(end_frame, total_frames))
-    
-    # Sample exactly 8 frames evenly spaced to optimize performance (avoiding too many slow seeking operations)
-    num_samples = 8
+    end_frame   = max(start_frame, min(end_frame, total_frames))
+
+    # Sample exactly 10 frames evenly spaced
+    num_samples  = 10
     frame_indices = [int(x) for x in np.linspace(start_frame, end_frame - 1, num_samples)]
-    face_x_positions = []
-    
+    face_x_positions  = []
+    frames_with_faces = 0
+
     for frame_idx in frame_indices:
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
         ret, frame = cap.read()
         if not ret:
             break
-            
-        # Downscale frame for speed up (scale height to 360px)
+
+        # Downscale frame for speed (scale height to 360px)
         h, w = frame.shape[:2]
         if w > 640:
-            scale = 360.0 / h
+            scale    = 360.0 / h
             target_w = int(w * scale)
-            target_h = 360
-            small_frame = cv2.resize(frame, (target_w, target_h))
-            x_scale = w / target_w
+            small_frame = cv2.resize(frame, (target_w, 360))
+            x_scale  = w / target_w
         else:
             small_frame = frame
-            x_scale = 1.0
+            x_scale  = 1.0
 
-        gray = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
+        gray  = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
-        
-        for (x, y, w_face, h_face) in faces:
+
+        if len(faces) > 0:
+            frames_with_faces += 1
+            x, y, w_face, h_face = faces[0]
             face_center_x = (x + w_face / 2) * x_scale
             face_x_positions.append(face_center_x)
-            break
 
     cap.release()
-    
-    if face_x_positions:
+
+    detection_ratio = frames_with_faces / max(len(frame_indices), 1)
+    print(f"[*] Face detection confidence: {frames_with_faces}/{len(frame_indices)} frames ({detection_ratio:.0%})")
+
+    # Only trust the face position if detected in at least 50% of frames
+    if face_x_positions and detection_ratio >= 0.50:
         median_x = float(np.median(face_x_positions))
-        ratio = median_x / width
-        print(f"[+] Face tracking found average X position: {median_x:.1f} (ratio: {ratio:.2f})")
+        ratio    = median_x / width
+        print(f"[+] Face tracking → X position: {median_x:.1f}px (ratio: {ratio:.2f})")
         return ratio, width, height
-    
-    print("[*] No faces detected in the sampled frames. Using center (0.5).")
+
+    print("[*] Low face detection confidence or no faces found. Using center (0.5).")
     return 0.5, width, height
 
 
@@ -280,18 +318,22 @@ def process_video_clip(
     crop_x_expr = "(iw-ih*9/16)/2"
     crop_1to1_x_expr = "(iw-min(iw\\,ih))/2"
 
-    if camera_tracking:
+    # Skip face tracking if the source video is already portrait/vertical
+    # (tracking makes no sense — there is nothing to re-frame)
+    _effective_tracking = camera_tracking and not is_portrait_video(video_path)
+
+    if _effective_tracking:
         face_ratio, orig_w, orig_h = detect_face_center(video_path, start_time, end_time)
         if orig_w > 0 and orig_h > 0:
             # For 9:16: crop width is orig_h * 9 / 16
             in_crop_w = orig_h * 9 / 16
-            ideal_x = int(face_ratio * orig_w - in_crop_w / 2)
+            ideal_x   = int(face_ratio * orig_w - in_crop_w / 2)
             clamped_x = max(0, min(ideal_x, int(orig_w - in_crop_w)))
             crop_x_expr = str(clamped_x)
 
             # For 1:1: crop width is min(orig_w, orig_h)
             in_crop_1to1_w = min(orig_w, orig_h)
-            ideal_1to1_x = int(face_ratio * orig_w - in_crop_1to1_w / 2)
+            ideal_1to1_x   = int(face_ratio * orig_w - in_crop_1to1_w / 2)
             clamped_1to1_x = max(0, min(ideal_1to1_x, int(orig_w - in_crop_1to1_w)))
             crop_1to1_x_expr = str(clamped_1to1_x)
 
