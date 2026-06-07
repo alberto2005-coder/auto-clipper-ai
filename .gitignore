@@ -8,3 +8,4 @@
 /output_clips_gui
 *.exe
 *.spec
+!run_gui.spec

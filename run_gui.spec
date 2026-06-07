@@ -1,7 +1,4 @@
 # -*- mode: python ; coding: utf-8 -*-
-# AVISO: Este .spec tiene la ruta de Streamlit HARDCODED a la maquina del desarrollador original.
-# NO uses este archivo directamente con 'pyinstaller run_gui.spec'.
-# Usa siempre 'crear_exe.bat' que resuelve la ruta dinamicamente.
 from PyInstaller.utils.hooks import collect_all
 
 datas = [('C:\\Users\\alors\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\streamlit', './streamlit'), ('gui.py', '.'), ('main.py', '.'), ('transcriber.py', '.'), ('analyzer.py', '.'), ('subtitle_generator.py', '.'), ('video_editor.py', '.')]
@@ -32,7 +29,7 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
-    optimize=1,
+    optimize=0,
 )
 pyz = PYZ(a.pure)
 
