@@ -1,4 +1,5 @@
 import json
+import time
 import requests
 import librosa
 import numpy as np
@@ -92,7 +93,6 @@ def select_best_moments_with_llm(
                     continue
 
                 if i > 0:
-                    import time
                     print("[*] Waiting 3 seconds before next chunk to avoid API rate limits...")
                     time.sleep(3.0)
 
@@ -222,7 +222,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             "format": "json",
         }
         try:
-            response = requests.post(api_url, json=payload, timeout=120)
+            response = requests.post(api_url, json=payload, timeout=300)
             response.raise_for_status()
             res_json = response.json()
             response_text = res_json.get("response", "")
@@ -244,7 +244,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
         }
 
         def do_request(payload_to_send):
-            resp = requests.post(api_url, json=payload_to_send, headers=headers, timeout=120)
+            resp = requests.post(api_url, json=payload_to_send, headers=headers, timeout=300)
             resp.raise_for_status()
             return resp.json()
 
@@ -333,6 +333,12 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             # Enforce maximum duration (90s)
             if n["end"] - n["start"] > MAX_DURATION:
                 n["end"] = n["start"] + MAX_DURATION
+
+            # Clamp to actual video duration (prevents empty clips from LLM hallucinated timestamps)
+            max_valid_end = max((seg.get("end", 0.0) for seg in transcription_data), default=0.0)
+            if max_valid_end > 0:
+                n["end"]   = min(n["end"],   max_valid_end)
+                n["start"] = min(n["start"], max(0.0, max_valid_end - MIN_DURATION))
 
             n["start"] = round(n["start"], 2)
             n["end"]   = round(n["end"],   2)

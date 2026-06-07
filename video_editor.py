@@ -278,7 +278,6 @@ def process_video_clip(
     end_time,
     ass_path,
     output_path,
-    zoom_effect=False,
     video_format="9:16",
     hook_title="",
     title_position="top",
@@ -289,20 +288,24 @@ def process_video_clip(
     camera_tracking=False,
     fade_effect=False,
     use_gpu=False,
+    source_is_portrait=None,
 ):
     """
     Cuts, re-frames, burns the hook title and ASS subtitles onto a video clip.
 
-    video_format    : "9:16" | "16:9" | "1:1"
-    hook_title      : Text to burn in (empty string = disabled).
-    title_position  : "top" | "center" | "bottom"
-    title_font_size : Font size in px at 1920h reference (scaled for other heights).
-    title_style     : Key in TITLE_STYLES.
-    title_font      : Font family name (must be installed on the system).
-    subtitle_position: "top" | "center" | "bottom"
-    camera_tracking : Centrar la cámara en el rostro detectado (si es horizontal y pasa a vertical/cuadrado).
-    fade_effect     : Animación de entrada y salida (transición de desvanecimiento).
-    use_gpu         : Habilitar codificación por hardware usando la GPU (NVIDIA h264_nvenc).
+    video_format       : "9:16" | "16:9" | "1:1"
+    hook_title         : Text to burn in (empty string = disabled).
+    title_position     : "top" | "center" | "bottom"
+    title_font_size    : Font size in px at 1920h reference (scaled for other heights).
+    title_style        : Key in TITLE_STYLES.
+    title_font         : Font family name (must be installed on the system).
+    subtitle_position  : "top" | "center" | "bottom"
+    camera_tracking    : Centrar la cámara en el rostro detectado.
+    fade_effect        : Animación de entrada y salida (transición de desvanecimiento).
+    use_gpu            : Habilitar codificación por hardware usando la GPU (NVIDIA h264_nvenc).
+    source_is_portrait : Pre-computed result of is_portrait_video(). If None, computed here.
+                         Pass it from the caller when processing multiple clips of the same
+                         source video to avoid re-opening the file each time.
     """
     duration = end_time - start_time
     print(
@@ -320,7 +323,9 @@ def process_video_clip(
 
     # Skip face tracking if the source video is already portrait/vertical
     # (tracking makes no sense — there is nothing to re-frame)
-    _effective_tracking = camera_tracking and not is_portrait_video(video_path)
+    # Use pre-computed value if provided (avoids re-opening the file for every clip)
+    _portrait = source_is_portrait if source_is_portrait is not None else is_portrait_video(video_path)
+    _effective_tracking = camera_tracking and not _portrait
 
     if _effective_tracking:
         face_ratio, orig_w, orig_h = detect_face_center(video_path, start_time, end_time)
@@ -346,8 +351,6 @@ def process_video_clip(
     else:
         filter_chain = f"crop=ih*9/16:ih:{crop_x_expr}:0,scale=1080:1920"
 
-    if zoom_effect:
-        pass
 
     # ── 2. Hook title — one drawtext filter per line ──────────────────────────
     if hook_title:
@@ -413,75 +416,55 @@ def process_video_clip(
             audio_filters.append(f"afade=t=in:st=0:d={fade_d}")
             audio_filters.append(f"afade=t=out:st={duration - fade_d}:d={fade_d}")
 
-    # ── 4. FFmpeg command ─────────────────────────────────────────────────────
+    # ── 4. Build and run FFmpeg command ──────────────────────────────────────
     ffmpeg_bin = get_ffmpeg_path()
-    cmd = [
-        ffmpeg_bin, "-y",
-        "-ss", str(start_time),
-        "-to", str(end_time),
-        "-i", video_path,
-        "-vf", filter_chain,
-    ]
-    if audio_filters:
-        cmd.extend(["-af", ",".join(audio_filters)])
 
-    v_codec = "h264_nvenc" if use_gpu else "libx264"
-    preset = "fast" if use_gpu else "veryfast"
-    
-    cmd.extend([
-        "-c:v", v_codec,
-        "-preset", preset,
-    ])
-    if not use_gpu:
-        cmd.extend(["-crf", "22"])
-
-    cmd.extend([
-        "-c:a", "aac",
-        "-b:a", "192k",
-        output_path
-    ])
+    def _build_cmd(use_gpu_flag):
+        """Build a complete FFmpeg export command. Always reads from the same args;
+        avoids the fragile arg-list mutation used in the old GPU fallback."""
+        base = [
+            ffmpeg_bin, "-y",
+            "-ss", str(start_time),
+            "-to", str(end_time),
+            "-i",  video_path,
+            "-vf", filter_chain,
+        ]
+        if audio_filters:
+            base += ["-af", ",".join(audio_filters)]
+        if use_gpu_flag:
+            base += ["-c:v", "h264_nvenc", "-preset", "fast"]
+        else:
+            base += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22"]
+        base += ["-c:a", "aac", "-b:a", "192k", output_path]
+        return base
 
     print("[*] Running FFmpeg command for export...")
     try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(_build_cmd(use_gpu), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     except FileNotFoundError as fnf:
-        raise RuntimeError(f"Error de sistema: No se pudo encontrar o ejecutar el binario de FFmpeg. Verifica su disponibilidad en '{ffmpeg_bin}'.") from fnf
+        raise RuntimeError(
+            f"Error de sistema: No se pudo encontrar o ejecutar el binario de FFmpeg. "
+            f"Verifica su disponibilidad en '{ffmpeg_bin}'."
+        ) from fnf
     except Exception as e:
         raise RuntimeError(f"Error crítico al iniciar el proceso de FFmpeg para la exportación: {e}") from e
 
     if result.returncode != 0:
         if use_gpu:
             print("[!] GPU acceleration failed. Re-trying video processing on CPU (libx264)...")
-            cmd_cpu = []
-            skip_next = False
-            for idx_arg, arg in enumerate(cmd):
-                if skip_next:
-                    skip_next = False
-                    continue
-                if arg == "-c:v":
-                    cmd_cpu.extend(["-c:v", "libx264"])
-                    skip_next = True
-                elif arg == "-preset":
-                    cmd_cpu.extend(["-preset", "veryfast"])
-                    skip_next = True
-                else:
-                    cmd_cpu.append(arg)
-            # Insert -crf 22 right before the output path (last element)
-            output_idx = len(cmd_cpu) - 1
-            cmd_cpu.insert(output_idx, "-crf")
-            cmd_cpu.insert(output_idx + 1, "22")
-            
-            result = subprocess.run(cmd_cpu, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            result = subprocess.run(_build_cmd(False), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if result.returncode != 0:
                 print("[!] FFmpeg CPU Fallback Error:")
                 print(result.stderr)
-                raise RuntimeError(f"FFmpeg falló al procesar el video en CPU. Detalles técnicos del error:\n{result.stderr}")
+                raise RuntimeError(
+                    f"FFmpeg falló al procesar el video en CPU. Detalles técnicos del error:\n{result.stderr}"
+                )
         else:
             print("[!] FFmpeg Error:")
             print(result.stderr)
             raise RuntimeError(f"FFmpeg falló al procesar el video. Detalles técnicos del error:\n{result.stderr}")
 
-    print(f"[+] Exported clip → {output_path}")
+    print(f"[+] Exported clip: {output_path}")
     return output_path
 
 
@@ -490,8 +473,6 @@ def mix_background_music(video_path, audio_path, volume, output_path):
     Mixes background audio with an existing video's audio track.
     Copies the video stream (-c:v copy) to complete the process instantly.
     """
-    import os
-    import subprocess
     print(f"[*] Mixing background music: {audio_path} (vol={volume}) onto {video_path}")
     ffmpeg_bin = get_ffmpeg_path()
     

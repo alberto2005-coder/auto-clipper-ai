@@ -245,6 +245,12 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
                 "text":  segment["text"].strip(),
                 "words": segment_words,
             })
+
+        if not transcription_data:
+            raise RuntimeError(
+                "La transcripci\u00f3n en la nube no devolvi\u00f3 segmentos con timestamps. "
+                "Verifica que el audio tenga voz clara o usa transcripci\u00f3n local con Whisper."
+            )
         return transcription_data
 
     finally:

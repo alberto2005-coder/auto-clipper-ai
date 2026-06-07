@@ -233,7 +233,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # \k duration is in centiseconds (1 cs = 10 ms)
         text_parts = []
         for w in chunk:
-            dur_cs = max(1, int(round((w["end"] - w["start"]) * 100)))
+            dur_cs = max(5, int(round((w["end"] - w["start"]) * 100)))
             text_parts.append(f"{{\\k{dur_cs}}}{w['word']}")
 
         line_text = " ".join(text_parts)

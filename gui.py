@@ -6,7 +6,7 @@ import uuid
 from transcriber import extract_audio, transcribe_audio
 from analyzer import select_best_moments_with_llm
 from subtitle_generator import generate_ass_subtitles, SUBTITLE_STYLES, AVAILABLE_FONTS
-from video_editor import process_video_clip, compute_title_info, TITLE_STYLES, TITLE_FONTS, mix_background_music
+from video_editor import process_video_clip, compute_title_info, TITLE_STYLES, TITLE_FONTS, mix_background_music, is_portrait_video
 import json
 import datetime
 
@@ -333,7 +333,13 @@ with tab_proc:
                 f"temp_uploaded_video_{uuid.uuid4().hex}.mp4",
             )
             with open(temp_uploaded_path, "wb") as f:
-                f.write(uploaded_file.read())
+                # Read in 8 MB chunks to avoid loading the whole video into RAM at once
+                CHUNK_SIZE = 8 * 1024 * 1024
+                while True:
+                    chunk = uploaded_file.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    f.write(chunk)
             if not os.path.exists(temp_uploaded_path):
                 st.error("❌ No se pudo guardar el video temporal. Intenta usar la ruta local.")
             else:
@@ -396,6 +402,10 @@ with tab_proc:
                 progress_bar.progress(70)
 
                 # ── Paso 4: Generar clips ──────────────────────────────────
+                # Pre-compute portrait detection ONCE for all clips of this source video
+                # (avoids re-opening the file with OpenCV N times)
+                source_is_portrait = is_portrait_video(video_to_process) if camera_tracking else False
+
                 for idx, clip in enumerate(clips):
                     start      = clip["start"]
                     end        = clip["end"]
@@ -445,6 +455,7 @@ with tab_proc:
                         camera_tracking=camera_tracking,
                         fade_effect=fade_effect,
                         use_gpu=use_gpu,
+                        source_is_portrait=source_is_portrait,
                     )
 
                 progress_bar.progress(100)
@@ -643,7 +654,7 @@ with tab_edit:
                 "⏹️ Fin del recorte (segundos)",
                 min_value=trim_start + 1.0,
                 max_value=clip_duration_edit,
-                value=min(clip_duration_edit, trim_start + max(clip_duration_edit, 5.0)),
+                value=clip_duration_edit,
                 step=0.5,
                 format="%.1f",
             )
