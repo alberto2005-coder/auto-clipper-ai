@@ -4,14 +4,14 @@ echo =====================================================
 echo  Auto-Clipper AI - Compilador de .exe
 echo =====================================================
 
-REM ── Verificar logo.ico ──────────────────────────────
+REM -- Verificar logo.ico
 if not exist "logo.ico" (
     echo [ERROR] No se encontro logo.ico en esta carpeta.
     echo         Coloca logo.ico junto a este .bat e intentalo de nuevo.
     pause & exit /b 1
 )
 
-REM ── Instalar PyInstaller ─────────────────────────────
+REM -- Instalar PyInstaller
 echo.
 echo [1/3] Instalando PyInstaller...
 pip install -q pyinstaller
@@ -20,19 +20,19 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-REM ── Buscar ruta de Streamlit ─────────────────────────
+REM -- Buscar ruta de Streamlit
 echo.
 echo [2/3] Buscando la ruta de Streamlit...
 FOR /F "tokens=*" %%g IN ('python -c "import streamlit, os; print(os.path.dirname(streamlit.__file__))"') do (SET STREAMLIT_PATH=%%g)
 
-if "%STREAMLIT_PATH%"=="" (
+if "%STREAMLIT_PATH%"="" (
     echo [ERROR] No se pudo encontrar Streamlit. Asegurate de tenerlo instalado:
     echo         pip install streamlit
     pause & exit /b 1
 )
 echo        Streamlit encontrado en: %STREAMLIT_PATH%
 
-REM ── Compilar con PyInstaller ─────────────────────────
+REM -- Compilar con PyInstaller
 echo.
 echo [3/3] Compilando la aplicacion en .exe...
 echo       Esto puede tardar varios minutos, por favor espera...
@@ -63,7 +63,7 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-REM ── Verificar que se genero el exe ───────────────────
+REM -- Verificar que se genero el exe
 if not exist "dist\run_gui\run_gui.exe" (
     echo.
     echo [ERROR] La compilacion termino pero no se encontro dist\run_gui\run_gui.exe.
