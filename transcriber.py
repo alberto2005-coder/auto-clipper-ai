@@ -199,8 +199,11 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
                 "model": model,
                 "response_format": "verbose_json",
                 "language": language,
-                "timestamp_granularities[]": ["word", "segment"]
             }
+            # timestamp_granularities is an OpenAI-specific param;
+            # Groq silently ignores or rejects it — don't send it to Groq.
+            if provider == "openai":
+                data["timestamp_granularities[]"] = ["word", "segment"]
             response = requests.post(url, headers=headers, files=files, data=data)
             response.raise_for_status()
             res_json = response.json()
@@ -211,28 +214,36 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
 
             
         transcription_data = []
-        all_words = res_json.get("words") or []
-        
+        # OpenAI returns words at top-level; Groq returns them inside each segment.
+        top_level_words = res_json.get("words") or []
+
         for segment in (res_json.get("segments") or []):
             segment_start = segment["start"]
-            segment_end = segment["end"]
+            segment_end   = segment["end"]
             segment_words = []
-            
-                                                                  
-            for w in all_words:
-                if w["start"] >= segment_start and w["end"] <= segment_end + 0.1:
-                    segment_words.append({
-                        "word": w["word"],
-                        "start": w["start"],
-                        "end": w["end"],
-                        "probability": w.get("probability", 1.0)
-                    })
-                    
+
+            # Try segment-level words first (Groq format), fall back to top-level (OpenAI)
+            raw_words = segment.get("words") or []
+            if not raw_words:
+                # OpenAI top-level words: filter by segment time range
+                raw_words = [
+                    w for w in top_level_words
+                    if w["start"] >= segment_start and w["end"] <= segment_end + 0.1
+                ]
+
+            for w in raw_words:
+                segment_words.append({
+                    "word":        w.get("word", w.get("text", "")),
+                    "start":       w["start"],
+                    "end":         w["end"],
+                    "probability": w.get("probability", 1.0),
+                })
+
             transcription_data.append({
                 "start": segment_start,
-                "end": segment_end,
-                "text": segment["text"].strip(),
-                "words": segment_words
+                "end":   segment_end,
+                "text":  segment["text"].strip(),
+                "words": segment_words,
             })
         return transcription_data
 

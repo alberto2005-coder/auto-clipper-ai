@@ -394,8 +394,15 @@ def process_video_clip(
 
     # ── 3. ASS subtitles ──────────────────────────────────────────────────────
     if ass_path and os.path.exists(ass_path):
-        escaped_ass_path = ass_path.replace("\\", "/").replace(":", "\\:")
-        filter_chain += f",subtitles='{escaped_ass_path}'"
+        # FFmpeg subtitles filter requires forward slashes and the drive-letter
+        # colon escaped as \: — but ONLY the drive colon, not the path itself.
+        # Wrong: replace ALL ":" → breaks Windows paths like C:\...
+        # Correct: forward slashes first, then escape only the first colon (drive letter)
+        ass_fwd = ass_path.replace("\\", "/")
+        # Escape the drive-letter colon: "C:/..." → "C\:/..."
+        if len(ass_fwd) >= 2 and ass_fwd[1] == ":":
+            ass_fwd = ass_fwd[0] + "\\:" + ass_fwd[2:]
+        filter_chain += f",subtitles='{ass_fwd}'"
 
     # ── 3.5. Fade animations ──────────────────────────────────────────────────
     audio_filters = []
