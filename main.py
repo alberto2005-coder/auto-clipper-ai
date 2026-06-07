@@ -5,7 +5,7 @@ import shutil
 from transcriber import extract_audio, transcribe_audio
 from analyzer import analyze_audio_energy, select_best_moments_with_llm
 from subtitle_generator import generate_ass_subtitles
-from video_editor import process_video_clip
+from video_editor import process_video_clip, is_portrait_video
 
 def main():
     parser = argparse.ArgumentParser(description="Auto-Clipper AI: Transforma videos largos a Shorts/TikToks de forma ligera.")
@@ -49,9 +49,12 @@ def main():
 
         
     os.makedirs(args.output_dir, exist_ok=True)
-    temp_dir = "temp_processing"
+    # Use an absolute path so temp files are always alongside this script,
+    # regardless of the working directory from which main.py is called.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    temp_dir = os.path.join(base_dir, "temp_processing")
     os.makedirs(temp_dir, exist_ok=True)
-    
+
     temp_audio = os.path.join(temp_dir, "extracted_audio.wav")
     
     try:
@@ -76,28 +79,28 @@ def main():
         
         print(f"[*] Se identificaron {len(clips)} momentos para procesar:")
         print(json.dumps(clips, indent=2, ensure_ascii=False))
-        
-                                   
+
+        # Pre-compute portrait detection ONCE for all clips (avoids N OpenCV file opens)
+        source_portrait = is_portrait_video(args.video_path) if args.camera_tracking else False
+
         for idx, clip in enumerate(clips):
             start = clip["start"]
-            end = clip["end"]
+            end   = clip["end"]
             title = clip.get("hook_title", f"clip_{idx+1}").replace(" ", "_").lower()
-            
-                            
+
             safe_title = "".join(c for c in title if c.isalnum() or c in ("_", "-"))
             clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
             clip_output_path = os.path.join(args.output_dir, clip_output_name)
-            
-                                                  
+
             ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
             generate_ass_subtitles(transcription_data, start, end, ass_path)
-            
-                                            
+
             process_video_clip(
                 args.video_path, start, end, ass_path, clip_output_path,
                 camera_tracking=args.camera_tracking,
                 fade_effect=args.fade_effect,
-                use_gpu=args.use_gpu
+                use_gpu=args.use_gpu,
+                source_is_portrait=source_portrait,
             )
             
         print(f"\n[+] Proceso completado con éxito. Clips guardados en: {args.output_dir}")

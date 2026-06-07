@@ -5,5 +5,4 @@ numpy
 soundfile
 imageio-ffmpeg
 streamlit
-
-
+opencv-python

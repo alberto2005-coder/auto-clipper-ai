@@ -12,8 +12,8 @@ if errorlevel 1 (
     exit
 )
 
-echo Instalando dependencias...
-pip install -r requirements.txt
+echo Instalando/verificando dependencias...
+pip install -q -r requirements.txt
 
 echo.
 set "ESCRITORIO="

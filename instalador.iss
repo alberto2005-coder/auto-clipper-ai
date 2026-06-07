@@ -1,8 +1,14 @@
 [Setup]
 ; Configuracion basica del instalador
 AppName=Auto-Clipper AI
-AppVersion=1.5
+AppVersion=1.6
 AppPublisher=Alberto
+; AppId unico (GUID): permite detectar versiones instaladas y gestionar actualizaciones
+AppId={{B7F3A2C1-4D8E-4F19-9B2A-DA3E56781230}}
+; Solo Windows 10+ de 64 bits
+MinVersion=10.0
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 DefaultDirName={autopf}\Auto-Clipper AI
 DefaultGroupName=Auto-Clipper AI
 OutputDir=.
