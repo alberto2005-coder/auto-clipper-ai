@@ -3,95 +3,97 @@ import os
 # ─────────────────────────────────────────────────────────────────────────────
 # ASS color format: &HAABBGGRR  (AA=00 means fully opaque)
 # ─────────────────────────────────────────────────────────────────────────────
+#
+# En el modelo karaoke por línea (un Dialogue por grupo de palabras):
+#   PrimaryColour   → color de la palabra ACTIVA (la que se está diciendo)
+#   SecondaryColour → color de las palabras EN ESPERA (aún no dichas)
+#   El tag \k<cs> hace que cada palabra se ilumine en secuencia.
+#
+# En SUBTITLE_STYLES:
+#   primary   → color del texto en reposo / no activo  (→ SecondaryColour en ASS)
+#   highlight → color de la palabra activa             (→ PrimaryColour en ASS)
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Each preset is a dict with the ASS style fields that differ per style:
-#   primary    → text color
-#   outline    → outline/border color
-#   back       → background box color
-#   border_w   → outline width (0 = no outline)
-#   shadow_w   → shadow depth
-#   border_sty → 1=outline+shadow, 3=filled box behind text
-#   highlight  → inline override color for the karaoke-highlighted word
 SUBTITLE_STYLES = {
     "tiktok": {
         "label":      "🎵 TikTok (blanco + borde negro)",
-        "primary":    "&H00FFFFFF",  # white text
+        "primary":    "&H00FFFFFF",  # white  — palabras en espera
         "outline":    "&H00000000",  # black outline
-        "back":       "&H00000000",  # unused (border_sty=1)
+        "back":       "&H00000000",
         "border_w":   6,
         "shadow_w":   0,
         "border_sty": 1,
-        "highlight":  "&H0000FFFF",  # yellow highlight for active word
+        "highlight":  "&H0000FFFF",  # yellow — palabra activa
     },
     "neon_blanco": {
         "label":      "⚡ Neón Blanco (blanco puro + glow negro)",
-        "primary":    "&H00FFFFFF",  # pure white text
-        "outline":    "&H00000000",  # thick black outline for contrast
-        "back":       "&H44000000",  # subtle semi-transparent shadow
+        "primary":    "&H99FFFFFF",  # blanco semitransparente — en espera
+        "outline":    "&H00000000",  # borde negro grueso
+        "back":       "&H44000000",
         "border_w":   8,
         "shadow_w":   3,
         "border_sty": 1,
-        "highlight":  "&H0000FFFF",  # yellow active word
+        "highlight":  "&H00FFFFFF",  # blanco puro brillante — activa
     },
     "brillo": {
         "label":      "✨ Brillo (Amarillo Neón + Borde y Sombra)",
-        "primary":    "&H0000FFFF",  # Yellow (BGR: FF FF 00)
-        "outline":    "&H00000000",  # Black
-        "back":       "&H0000FFFF",  # Yellow shadow/glow
+        "primary":    "&H8800FFFF",  # amarillo semitransparente — en espera
+        "outline":    "&H00000000",
+        "back":       "&H0000FFFF",
         "border_w":   3,
         "shadow_w":   4,
         "border_sty": 1,
-        "highlight":  "&H0000FF00",  # Bright Green highlight
+        "highlight":  "&H0000FFFF",  # amarillo puro — activa
     },
     "caja_blanca": {
         "label":      "⬜ Caja blanca + letra negra",
-        "primary":    "&H00000000",  # black text
-        "outline":    "&H00FFFFFF",  # white (unused visually with box)
+        "primary":    "&H88000000",  # negro semitransparente — en espera
+        "outline":    "&H00FFFFFF",
         "back":       "&H00FFFFFF",  # white box
         "border_w":   0,
         "shadow_w":   0,
-        "border_sty": 3,             # box mode
-        "highlight":  "&H000000FF",  # red highlight for active word
+        "border_sty": 3,
+        "highlight":  "&H000000FF",  # rojo — activa
     },
     "caja_negra": {
         "label":      "⬛ Caja negra + letra blanca",
-        "primary":    "&H00FFFFFF",
+        "primary":    "&H88FFFFFF",  # blanco semitransparente — en espera
         "outline":    "&H00000000",
-        "back":       "&HAA000000",  # semi-transparent black box
+        "back":       "&HAA000000",
         "border_w":   0,
         "shadow_w":   0,
         "border_sty": 3,
-        "highlight":  "&H0000FFFF",  # yellow highlight
+        "highlight":  "&H0000FFFF",  # amarillo — activa
     },
     "amarillo": {
         "label":      "💛 Amarillo + borde negro (YouTube)",
-        "primary":    "&H0000FFFF",  # yellow (BGR: FF FF 00)
+        "primary":    "&H880000FF",  # amarillo tenue — en espera  (BGR: FF FF 00)
         "outline":    "&H00000000",
         "back":       "&H00000000",
         "border_w":   3,
         "shadow_w":   4,
         "border_sty": 1,
-        "highlight":  "&H000000FF",  # red highlight
+        "highlight":  "&H0000FFFF",  # amarillo puro — activa
     },
     "neon": {
         "label":      "🟢 Neón (cian + borde negro)",
-        "primary":    "&H00FFFF00",  # cyan (BGR: 00 FF FF)
+        "primary":    "&H88FFFF00",  # cian tenue — en espera  (BGR: 00 FF FF)
         "outline":    "&H00000000",
         "back":       "&H00000000",
         "border_w":   4,
         "shadow_w":   0,
         "border_sty": 1,
-        "highlight":  "&H00FFFFFF",  # white highlight
+        "highlight":  "&H00FFFF00",  # cian puro — activa
     },
     "capcut": {
         "label":      "🎬 CapCut (letra blanca + borde y sombra)",
-        "primary":    "&H00FFFFFF",  # white text
-        "outline":    "&H00000000",  # black outline
+        "primary":    "&H88FFFFFF",  # blanco tenue — en espera
+        "outline":    "&H00000000",
         "back":       "&H00000000",
         "border_w":   3,
-        "shadow_w":   4,             # drop shadow
+        "shadow_w":   4,
         "border_sty": 1,
-        "highlight":  "&H0000FFFF",  # yellow active word highlight
+        "highlight":  "&H0000FFFF",  # amarillo — activa
     },
 }
 
@@ -110,20 +112,14 @@ AVAILABLE_FONTS = [
 
 def format_timestamp(seconds):
     """Formats seconds into ASS format (H:MM:SS.cs)."""
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
+    hours        = int(seconds // 3600)
+    minutes      = int((seconds % 3600) // 60)
+    secs         = int(seconds % 60)
     centiseconds = int(round((seconds % 1) * 100))
     if centiseconds == 100:
-        secs += 1
+        secs        += 1
         centiseconds = 0
     return f"{hours}:{minutes:02d}:{secs:02d}.{centiseconds:02d}"
-
-
-def to_inline_color(ass_color):
-    """Converts a standard ASS color (e.g. &H00AABBCC) to a 6-hex-digit BGR string for inline tags."""
-    clean = ass_color.replace("&H", "").replace("&", "")
-    return clean[-6:]
 
 
 def generate_ass_subtitles(
@@ -138,8 +134,12 @@ def generate_ass_subtitles(
     margin_override=None,
 ):
     """
-    Generates a stylized ASS subtitle file highlighting the active word.
-    Includes smooth fade-in/fade-out on every subtitle event.
+    Generates a stylized ASS subtitle file using a LINE-BASED karaoke model.
+
+    One Dialogue event per group of 3-4 words (chunk).  Each event spans the
+    full duration of its word group (~1-4 seconds), so the \\fad fade tag has
+    enough room to work without causing flicker.  Within each event the active
+    word is illuminated via ASS \\k karaoke timing tags.
 
     Parameters
     ----------
@@ -147,8 +147,7 @@ def generate_ass_subtitles(
     font_name         : Font family (must be installed on the system).
     font_size         : Base font size in ASS units (reference 1080x1920).
     subtitle_style    : Key in SUBTITLE_STYLES dict.
-    margin_override   : If set (int), overrides the default MarginV so subtitles
-                        are pushed away from the title when they share the same edge.
+    margin_override   : If set (int), overrides the default MarginV.
     """
     print(
         f"[*] Generating ASS subtitles | pos={subtitle_position} | "
@@ -157,20 +156,17 @@ def generate_ass_subtitles(
     try:
         with open("debug_log.txt", "a", encoding="utf-8") as dbg:
             dbg.write(
-                f"style={subtitle_style} | pos={subtitle_position} | font={font_name} | size={font_size}\n"
+                f"style={subtitle_style} | pos={subtitle_position} | "
+                f"font={font_name} | size={font_size}\n"
             )
     except Exception:
         pass
 
     # ── Position mapping ──────────────────────────────────────────────────────
-    # ASS Alignment numpad layout:
-    #   7=top-left   8=top-center   9=top-right
-    #   4=mid-left   5=mid-center   6=mid-right
-    #   1=bot-left   2=bot-center   3=bot-right
     POSITION_MAP = {
-        "top":    ("8", "120"),   # top-center, 120px from top
-        "center": ("5", "0"),     # mid-center
-        "bottom": ("2", "200"),   # bottom-center, 200px from bottom
+        "top":    ("8", "120"),
+        "center": ("5", "0"),
+        "bottom": ("2", "200"),
     }
     alignment, margin_v = POSITION_MAP.get(subtitle_position, POSITION_MAP["bottom"])
     if margin_override is not None:
@@ -178,6 +174,11 @@ def generate_ass_subtitles(
 
     # ── Style preset ──────────────────────────────────────────────────────────
     style = SUBTITLE_STYLES.get(subtitle_style, SUBTITLE_STYLES["tiktok"])
+
+    # ASS PrimaryColour   = highlight (active word via \k karaoke)
+    # ASS SecondaryColour = primary   (base / waiting word color)
+    ass_primary   = style["highlight"]   # active word color
+    ass_secondary = style["primary"]     # waiting word color
 
     # ── Build word list ───────────────────────────────────────────────────────
     all_words = []
@@ -197,81 +198,91 @@ def generate_ass_subtitles(
         return False
 
     # ── ASS header ────────────────────────────────────────────────────────────
-    ass_template = f"""[Script Info]
+    # NOTE: PrimaryColour & SecondaryColour are deliberately swapped vs the old
+    # code so that the \k karaoke tag highlights the ACTIVE word (Primary) while
+    # waiting words show the base color (Secondary).
+    ass_header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: 1080
 PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},{font_size},{style['primary']},&H0000FFFF,{style['outline']},{style['back']},1,0,0,0,100,100,0,0,{style['border_sty']},{style['border_w']},{style['shadow_w']},{alignment},100,100,{margin_v},1
+Style: Default,{font_name},{font_size},{ass_primary},{ass_secondary},{style['outline']},{style['back']},1,0,0,0,100,100,0,0,{style['border_sty']},{style['border_w']},{style['shadow_w']},{alignment},100,100,{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
-    # ── Build karaoke events (4-word rolling window) ──────────────────────────
-    # Each event highlights the current word with a color change.
-    # \fad(fade_in_ms, fade_out_ms) gives smooth appearance/disappearance.
-    FADE_MS    = 200   # milliseconds for fade in and fade out
-    CHUNK_SIZE = 4     # words visible at once
+    # ── Build karaoke events (LINE-BASED: one event per word-group) ──────────
+    #
+    # Each chunk of CHUNK_SIZE words becomes a single Dialogue event.
+    # Duration ≈ 1-4 seconds → \fad(250,150) works correctly with no flicker.
+    # \k<cs> tags advance the karaoke highlight word by word.
+    #
+    CHUNK_SIZE = 4
+    FADE_IN_MS  = 250   # ms
+    FADE_OUT_MS = 150   # ms
 
-    events = []
+    events  = []
     n_words = len(all_words)
-    highlight_color = style["highlight"]
-    high_rgb = to_inline_color(highlight_color)
-    prim_rgb = to_inline_color(style["primary"])
 
-    for i in range(n_words):
-        current_word = all_words[i]
-        start_time = current_word["start"]
-        end_time   = max(current_word["end"], current_word["start"] + 0.05)
+    chunk_idx = 0
+    while chunk_idx < n_words:
+        chunk     = all_words[chunk_idx: chunk_idx + CHUNK_SIZE]
+        chunk_start = chunk[0]["start"]
+        # Give the last chunk a minimum visible duration of 500ms
+        chunk_end   = max(chunk[-1]["end"], chunk_start + 0.50)
 
-        start_str = format_timestamp(start_time)
-        end_str   = format_timestamp(end_time)
+        start_str = format_timestamp(chunk_start)
+        end_str   = format_timestamp(chunk_end)
 
-        # Rolling CHUNK_SIZE-word window centred around the active word
-        start_idx = max(0, i - 1)
-        end_idx   = min(n_words, start_idx + CHUNK_SIZE)
-        if end_idx - start_idx < CHUNK_SIZE:
-            start_idx = max(0, end_idx - CHUNK_SIZE)
-
-        chunk = all_words[start_idx:end_idx]
-
-        formatted_words = []
+        # Build the karaoke text: {\kXX}WORD1 {\kXX}WORD2 ...
+        # \k duration is in centiseconds (1 cs = 10 ms)
+        text_parts = []
         for w in chunk:
-            if w == current_word:
-                # Highlighted active word
-                formatted_words.append(
-                    f"{{\\c&H{high_rgb}&}}{w['word']}{{\\c&H{prim_rgb}&}}"
-                )
-            else:
-                formatted_words.append(w["word"])
+            dur_cs = max(1, int(round((w["end"] - w["start"]) * 100)))
+            text_parts.append(f"{{\\k{dur_cs}}}{w['word']}")
 
-        line_text = " ".join(formatted_words)
+        line_text = " ".join(text_parts)
 
-        # Prepend the fade tag so every event fades in/out smoothly
-        fade_tag  = f"{{\\fad({FADE_MS},{FADE_MS})}}"
+        # Apply fade only when the event is long enough (≥ fade_in + fade_out)
+        min_fade_duration = (FADE_IN_MS + FADE_OUT_MS) / 1000.0
+        if chunk_end - chunk_start >= min_fade_duration:
+            fade_tag = f"{{\\fad({FADE_IN_MS},{FADE_OUT_MS})}}"
+        else:
+            fade_tag = ""
+
         full_text = fade_tag + line_text
+        events.append(
+            f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{full_text}"
+        )
 
-        events.append(f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{full_text}")
+        chunk_idx += CHUNK_SIZE
 
     with open(output_ass_path, "w", encoding="utf-8") as f:
-        f.write(ass_template)
+        f.write(ass_header)
         f.write("\n".join(events))
 
-    print(f"[+] Subtitles generated at {output_ass_path}")
+    print(f"[+] Subtitles generated: {output_ass_path} ({len(events)} line events)")
     return True
 
 
 if __name__ == "__main__":
     dummy_words = [
-        {"word": "Hola",    "start": 0.5, "end": 1.0},
-        {"word": "amigos,", "start": 1.0, "end": 1.5},
-        {"word": "esto",    "start": 1.5, "end": 1.8},
-        {"word": "es",      "start": 1.8, "end": 2.0},
-        {"word": "una",     "start": 2.0, "end": 2.2},
-        {"word": "prueba",  "start": 2.2, "end": 2.8},
+        {"word": "hola",    "start": 0.5,  "end": 0.9},
+        {"word": "amigos",  "start": 0.9,  "end": 1.4},
+        {"word": "esto",    "start": 1.5,  "end": 1.8},
+        {"word": "es",      "start": 1.8,  "end": 2.0},
+        {"word": "una",     "start": 2.0,  "end": 2.2},
+        {"word": "prueba",  "start": 2.2,  "end": 2.8},
+        {"word": "del",     "start": 2.9,  "end": 3.1},
+        {"word": "sistema", "start": 3.1,  "end": 3.7},
     ]
     dummy_data = [{"words": dummy_words}]
-    generate_ass_subtitles(dummy_data, 0.0, 3.0, subtitle_style="neon_blanco")
+    for style_key in ["tiktok", "neon_blanco", "amarillo"]:
+        out = f"test_{style_key}.ass"
+        generate_ass_subtitles(dummy_data, 0.0, 4.0, out, subtitle_style=style_key)
+        with open(out, encoding="utf-8") as f:
+            print(f"\n=== {style_key} ===")
+            print(f.read())
