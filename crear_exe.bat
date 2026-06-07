@@ -25,7 +25,7 @@ echo.
 echo [2/3] Buscando la ruta de Streamlit...
 FOR /F "tokens=*" %%g IN ('python -c "import streamlit, os; print(os.path.dirname(streamlit.__file__))"') do (SET STREAMLIT_PATH=%%g)
 
-if "%STREAMLIT_PATH%"="" (
+if not defined STREAMLIT_PATH (
     echo [ERROR] No se pudo encontrar Streamlit. Asegurate de tenerlo instalado:
     echo         pip install streamlit
     pause & exit /b 1
