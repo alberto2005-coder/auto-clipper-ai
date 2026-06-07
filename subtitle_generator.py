@@ -153,14 +153,6 @@ def generate_ass_subtitles(
         f"[*] Generating ASS subtitles | pos={subtitle_position} | "
         f"font={font_name} {font_size}pt | style={subtitle_style}"
     )
-    try:
-        with open("debug_log.txt", "a", encoding="utf-8") as dbg:
-            dbg.write(
-                f"style={subtitle_style} | pos={subtitle_position} | "
-                f"font={font_name} | size={font_size}\n"
-            )
-    except Exception:
-        pass
 
     # ── Position mapping ──────────────────────────────────────────────────────
     POSITION_MAP = {
