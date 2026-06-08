@@ -101,7 +101,7 @@ def register_font_windows(font_path):
         print(f"Error registering font: {e}")
     return False
 
-WORKSPACE_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+WORKSPACE_FONTS_DIR = os.path.join(get_persistent_output_dir(), "fonts")
 os.makedirs(WORKSPACE_FONTS_DIR, exist_ok=True)
 
 def download_montserrat_if_needed():
