@@ -9,3 +9,4 @@
 *.exe
 *.spec
 !run_gui.spec
+/fonts
