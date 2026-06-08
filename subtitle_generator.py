@@ -133,6 +133,7 @@ def generate_ass_subtitles(
     font_size=75,
     subtitle_style="tiktok",
     margin_override=None,
+    words_override=None,
 ):
     """
     Generates a stylized ASS subtitle file using a LINE-BASED karaoke model.
@@ -149,6 +150,7 @@ def generate_ass_subtitles(
     font_size         : Base font size in ASS units (reference 1080x1920).
     subtitle_style    : Key in SUBTITLE_STYLES dict.
     margin_override   : If set (int), overrides the default MarginV.
+    words_override    : Optional list of dicts with custom words and timestamps.
     """
     print(
         f"[*] Generating ASS subtitles | pos={subtitle_position} | "
@@ -175,22 +177,35 @@ def generate_ass_subtitles(
 
     # ── Build word list ───────────────────────────────────────────────────────
     all_words = []
-    for segment in transcription_data:
-        for w in segment.get("words", []):
+    if words_override is not None:
+        for w in words_override:
             w_start = w["start"]
             w_end   = w["end"]
-            # Permitir palabras que comiencen dentro del rango o que tengan un solapamiento significativo
-            # (esto evita que límites muy estrictos de decimales de la IA descarten palabras al inicio/fin del clip)
-            if (w_start >= clip_start - 0.5 and w_start < clip_end) or (w_end > clip_start and w_end <= clip_end + 0.5):
-                # Clampear tiempos relativos para que no queden fuera del rango [0, duration]
-                rel_start = max(0.0, w_start - clip_start)
-                rel_end   = min(clip_end - clip_start, w_end - clip_start)
-                if rel_end > rel_start:
-                    all_words.append({
-                        "word":  w["word"].strip().upper(),
-                        "start": rel_start,
-                        "end":   rel_end,
-                    })
+            rel_start = max(0.0, w_start - clip_start)
+            rel_end   = min(clip_end - clip_start, w_end - clip_start)
+            if rel_end > rel_start:
+                all_words.append({
+                    "word":  w["word"].strip().upper(),
+                    "start": rel_start,
+                    "end":   rel_end,
+                })
+    else:
+        for segment in transcription_data:
+            for w in segment.get("words", []):
+                w_start = w["start"]
+                w_end   = w["end"]
+                # Permitir palabras que comiencen dentro del rango o que tengan un solapamiento significativo
+                # (esto evita que límites muy estrictos de decimales de la IA descarten palabras al inicio/fin del clip)
+                if (w_start >= clip_start - 0.5 and w_start < clip_end) or (w_end > clip_start and w_end <= clip_end + 0.5):
+                    # Clampear tiempos relativos para que no queden fuera del rango [0, duration]
+                    rel_start = max(0.0, w_start - clip_start)
+                    rel_end   = min(clip_end - clip_start, w_end - clip_start)
+                    if rel_end > rel_start:
+                        all_words.append({
+                            "word":  w["word"].strip().upper(),
+                            "start": rel_start,
+                            "end":   rel_end,
+                        })
 
     if not all_words:
         print("[!] No words found in the clip range for subtitles.")

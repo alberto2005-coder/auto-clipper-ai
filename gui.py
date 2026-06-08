@@ -11,6 +11,158 @@ import json
 import datetime
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Custom Font Handling & Registration
+# ─────────────────────────────────────────────────────────────────────────────
+import struct
+import ctypes
+
+def get_font_name_from_ttf(path):
+    try:
+        with open(path, 'rb') as f:
+            sfnt_header = f.read(12)
+            if len(sfnt_header) < 12:
+                return os.path.splitext(os.path.basename(path))[0]
+            num_tables = struct.unpack('>H', sfnt_header[4:6])[0]
+            
+            name_offset = None
+            name_length = None
+            for _ in range(num_tables):
+                table_record = f.read(16)
+                if len(table_record) < 16:
+                    break
+                tag = table_record[0:4].decode('latin-1', errors='ignore')
+                if tag == 'name':
+                    name_offset = struct.unpack('>I', table_record[8:12])[0]
+                    name_length = struct.unpack('>I', table_record[12:16])[0]
+                    break
+                    
+            if name_offset is None or name_length is None:
+                return os.path.splitext(os.path.basename(path))[0]
+                
+            f.seek(name_offset)
+            name_table_header = f.read(6)
+            if len(name_table_header) < 6:
+                return os.path.splitext(os.path.basename(path))[0]
+            count, string_offset = struct.unpack('>HH', name_table_header[2:6])
+            
+            records_start = name_offset + 6
+            string_start = name_offset + string_offset
+            
+            font_family = None
+            font_name = None
+            
+            for i in range(count):
+                f.seek(records_start + i * 12)
+                record_data = f.read(12)
+                if len(record_data) < 12:
+                    break
+                platform_id, encoding_id, language_id, name_id, length, offset = struct.unpack('>HHHHHH', record_data)
+                
+                if name_id in (1, 4):
+                    f.seek(string_start + offset)
+                    s = f.read(length)
+                    try:
+                        if platform_id == 3 or platform_id == 0:
+                            decoded = s.decode('utf-16-be', errors='ignore')
+                        else:
+                            decoded = s.decode('utf-8', errors='ignore')
+                    except Exception:
+                        decoded = s.decode('latin-1', errors='ignore')
+                    
+                    decoded = decoded.strip('\x00').strip()
+                    if decoded:
+                        if name_id == 1:
+                            font_family = decoded
+                        elif name_id == 4:
+                            font_name = decoded
+                            
+            if font_family:
+                return font_family
+            if font_name:
+                return font_name
+            return os.path.splitext(os.path.basename(path))[0]
+    except Exception:
+        return os.path.splitext(os.path.basename(path))[0]
+
+def register_font_windows(font_path):
+    if os.name != 'nt':
+        return False
+    try:
+        gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
+        res = gdi32.AddFontResourceW(font_path)
+        if res > 0:
+            user32 = ctypes.WinDLL('user32', use_last_error=True)
+            HWND_BROADCAST = 0xFFFF
+            WM_FONTCHANGE = 0x001D
+            user32.SendMessageW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0)
+            return True
+    except Exception as e:
+        print(f"Error registering font: {e}")
+    return False
+
+WORKSPACE_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+os.makedirs(WORKSPACE_FONTS_DIR, exist_ok=True)
+
+def download_montserrat_if_needed():
+    import urllib.request
+    fonts_to_download = {
+        "Montserrat-Bold.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf",
+        "Montserrat-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Regular.ttf",
+        "Montserrat-Medium.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf",
+    }
+    for filename, url in fonts_to_download.items():
+        dest = os.path.join(WORKSPACE_FONTS_DIR, filename)
+        if not os.path.exists(dest):
+            try:
+                print(f"[*] Downloading {filename} from Google Fonts...")
+                urllib.request.urlretrieve(url, dest)
+            except Exception as e:
+                print(f"[!] Error downloading {filename}: {e}")
+
+def load_and_register_local_fonts():
+    download_montserrat_if_needed()
+    custom_fonts_found = []
+    if os.path.exists(WORKSPACE_FONTS_DIR):
+        for filename in os.listdir(WORKSPACE_FONTS_DIR):
+            if filename.lower().endswith(('.ttf', '.otf')):
+                font_path = os.path.join(WORKSPACE_FONTS_DIR, filename)
+                register_font_windows(font_path)
+                name = get_font_name_from_ttf(font_path)
+                if name and name not in custom_fonts_found:
+                    custom_fonts_found.append(name)
+    return custom_fonts_found
+
+# Load custom fonts
+custom_font_names = load_and_register_local_fonts()
+
+# Combine lists
+combined_available_fonts = []
+for f in (custom_font_names + AVAILABLE_FONTS):
+    if f not in combined_available_fonts:
+        combined_available_fonts.append(f)
+
+combined_title_fonts = []
+for f in (custom_font_names + TITLE_FONTS):
+    if f not in combined_title_fonts:
+        combined_title_fonts.append(f)
+
+
+def get_words_for_range(transcription_data, start, end):
+    words = []
+    for segment in transcription_data:
+        for w in segment.get("words", []):
+            w_start = w["start"]
+            w_end   = w["end"]
+            if (w_start >= start - 0.5 and w_start < end) or (w_end > start and w_end <= end + 0.5):
+                words.append({
+                    "word": w["word"].strip().upper(),
+                    "start": w_start,
+                    "end": w_end,
+                })
+    return words
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -121,6 +273,10 @@ if "pipeline_clips" not in st.session_state: st.session_state.pipeline_clips = [
 if "pipeline_fmt"   not in st.session_state: st.session_state.pipeline_fmt   = "9:16"
 if "pipeline_style" not in st.session_state: st.session_state.pipeline_style = "tiktok"
 if "output_dir_ss"  not in st.session_state: st.session_state.output_dir_ss  = ""
+if "video_analyzed" not in st.session_state: st.session_state.video_analyzed = False
+if "transcription_data" not in st.session_state: st.session_state.transcription_data = None
+if "clips" not in st.session_state: st.session_state.clips = []
+if "video_to_process" not in st.session_state: st.session_state.video_to_process = ""
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -199,7 +355,7 @@ if enable_subtitles:
     )
     sub_font_name = st.sidebar.selectbox(
         "Tipo de letra (subtítulos)",
-        options=AVAILABLE_FONTS,
+        options=combined_available_fonts,
         index=0,
     )
     sub_font_size = st.sidebar.slider(
@@ -243,7 +399,7 @@ if show_title:
         format_func=lambda k: TITLE_STYLES[k]["label"],
         index=0,
     )
-    title_font = st.sidebar.selectbox("Tipo de letra (título)", options=TITLE_FONTS, index=0)
+    title_font = st.sidebar.selectbox("Tipo de letra (título)", options=combined_title_fonts, index=0)
     title_font_size = st.sidebar.slider(
         "Tamaño de letra (título)",
         min_value=40, max_value=160, value=90, step=5,
@@ -259,6 +415,25 @@ else:
     title_font      = "Arial Bold"
     title_font_size = 90
     title_position  = "top"
+
+st.sidebar.markdown("---")
+st.sidebar.header("🔤 Fuentes Personalizadas")
+uploaded_fonts = st.sidebar.file_uploader(
+    "Sube tus propios archivos de fuente (.ttf, .otf)",
+    type=["ttf", "otf"],
+    accept_multiple_files=True,
+    key="font_uploader"
+)
+if uploaded_fonts:
+    new_fonts_uploaded = False
+    for f in uploaded_fonts:
+        dest = os.path.join(WORKSPACE_FONTS_DIR, f.name)
+        if not os.path.exists(dest):
+            with open(dest, "wb") as dest_f:
+                dest_f.write(f.read())
+            new_fonts_uploaded = True
+    if new_fonts_uploaded:
+        st.rerun()
 
 st.sidebar.markdown("---")
 
@@ -317,30 +492,42 @@ with tab_proc:
             type=["mp4", "mkv", "mov"],
             max_upload_size=10240,
         )
-        st.info("💡 Una vez subido el video, haz clic en 'Comenzar Pipeline' para procesar.")
+        st.info("💡 Paso 1: Analizar el video para detectar los mejores momentos. Paso 2: Editar y renderizar los clips.")
         local_path = st.text_input("O introduce la ruta de un archivo local (más rápido):")
 
     with col2:
-        st.subheader("📋 Progreso del Pipeline")
-        process_btn  = st.button("🚀 Comenzar Pipeline")
+        st.subheader("📋 Acciones del Pipeline")
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            analyze_btn = st.button("🔍 1. Analizar Video", use_container_width=True)
+        with col_btn2:
+            render_btn = st.button("🎬 2. Procesar Clips", disabled=not st.session_state.get("video_analyzed", False), use_container_width=True)
+        
         status_area  = st.empty()
         progress_bar = st.progress(0)
 
-    if process_btn:
+    # ── 1. ACTION: ANALYZE VIDEO ──────────────────────────────────────────────
+    if analyze_btn:
         # Reset state so previous results don't linger
         st.session_state.pipeline_done  = False
         st.session_state.pipeline_clips = []
+        st.session_state.video_analyzed = False
+        st.session_state.clips = []
+        st.session_state.transcription_data = None
+        st.session_state.video_to_process = ""
 
         video_to_process   = ""
         temp_uploaded_path = None
 
         if uploaded_file is not None:
+            output_dir = get_persistent_output_dir()
+            temp_uploads_dir = os.path.join(output_dir, "temp_uploads")
+            os.makedirs(temp_uploads_dir, exist_ok=True)
             temp_uploaded_path = os.path.join(
-                tempfile.gettempdir(),
-                f"temp_uploaded_video_{uuid.uuid4().hex}.mp4",
+                temp_uploads_dir,
+                f"temp_uploaded_{uuid.uuid4().hex}.mp4",
             )
             with open(temp_uploaded_path, "wb") as f:
-                # Read in 8 MB chunks to avoid loading the whole video into RAM at once
                 CHUNK_SIZE = 8 * 1024 * 1024
                 while True:
                     chunk = uploaded_file.read(CHUNK_SIZE)
@@ -351,7 +538,7 @@ with tab_proc:
                 st.error("❌ No se pudo guardar el video temporal. Intenta usar la ruta local.")
             else:
                 file_size = os.path.getsize(temp_uploaded_path)
-                status_area.write(f"✅ Video temporal guardado ({file_size // (1024*1024)} MB)")
+                status_area.write(f"✅ Video guardado en temp_uploads ({file_size // (1024*1024)} MB)")
                 video_to_process = temp_uploaded_path
         elif local_path:
             if os.path.exists(local_path):
@@ -361,21 +548,19 @@ with tab_proc:
 
         if video_to_process:
             temp_dir   = os.path.join(tempfile.gettempdir(), f"temp_gui_{uuid.uuid4().hex}")
-            output_dir = get_persistent_output_dir()
             os.makedirs(temp_dir,   exist_ok=True)
-            os.makedirs(output_dir, exist_ok=True)
             temp_audio = os.path.join(temp_dir, "extracted_audio.wav")
 
             try:
                 # ── Paso 1: Audio ──────────────────────────────────────────
-                status_area.write("⏳ Paso 1/4: Extrayendo audio del video...")
-                progress_bar.progress(5)
+                status_area.write("⏳ Paso 1/3: Extrayendo audio del video...")
+                progress_bar.progress(15)
                 extract_audio(video_to_process, temp_audio)
 
                 # ── Paso 2: Transcripción ──────────────────────────────────
                 if use_cloud_transcription and provider in ["groq", "openai"] and api_key:
-                    status_area.write(f"⏳ Paso 2/4: Transcribiendo en la nube con {provider}...")
-                    progress_bar.progress(25)
+                    status_area.write(f"⏳ Paso 2/3: Transcribiendo en la nube con {provider}...")
+                    progress_bar.progress(40)
                     from transcriber import transcribe_audio_cloud
                     trans_api_url = None
                     if provider == "openai" and api_url and "completions" not in api_url:
@@ -385,15 +570,15 @@ with tab_proc:
                         api_url=trans_api_url, language=lang,
                     )
                 else:
-                    status_area.write("⏳ Paso 2/4: Transcribiendo localmente con Whisper...")
-                    progress_bar.progress(25)
+                    status_area.write("⏳ Paso 2/3: Transcribiendo localmente con Whisper...")
+                    progress_bar.progress(40)
                     transcription_data = transcribe_audio(
                         temp_audio, model_size=whisper_model, language=lang, use_gpu=use_gpu,
                     )
 
                 # ── Paso 3: IA selecciona momentos ────────────────────────
-                status_area.write("⏳ Paso 3/4: La IA está buscando los mejores momentos...")
-                progress_bar.progress(55)
+                status_area.write("⏳ Paso 3/3: La IA está buscando los mejores momentos...")
+                progress_bar.progress(75)
                 clips = select_best_moments_with_llm(
                     transcription_data,
                     provider=resolved_provider,
@@ -405,117 +590,223 @@ with tab_proc:
                     clip_type=clip_type,
                 )
 
-                status_area.write(f"✅ Se encontraron {len(clips)} momentos. Generando clips...")
-                progress_bar.progress(70)
-
-                # ── Paso 4: Generar clips ──────────────────────────────────
-                # Pre-compute portrait detection ONCE for all clips of this source video
-                # (avoids re-opening the file with OpenCV N times)
-                source_is_portrait = is_portrait_video(video_to_process) if camera_tracking else False
-
+                # Post-processing helper function to get words for each clip
                 for idx, clip in enumerate(clips):
-                    start      = clip["start"]
-                    end        = clip["end"]
-                    clip_title = clip.get("hook_title", f"clip_{idx+1}")
-                    safe_title = "".join(
-                        c for c in clip_title.replace(" ", "_").lower()
-                        if c.isalnum() or c in ("_", "-")
-                    )
-                    clip_output_name = f"clip_{idx+1}_{safe_title}_{subtitle_style_key}.mp4"
-                    clip_output_path = os.path.join(output_dir, clip_output_name)
+                    clip["words"] = get_words_for_range(transcription_data, clip["start"], clip["end"])
 
-                    status_area.write(f"⏳ Paso 4/4: Procesando clip {idx+1}/{len(clips)}: {clip_title}...")
-
-                    # Offset subtítulos si comparten borde con el título
-                    subtitle_margin_override = None
-                    if show_title and clip_title and enable_subtitles and title_position == subtitle_position:
-                        anchor_px, title_h = compute_title_info(
-                            clip_title, video_format, title_position, title_font_size
-                        )
-                        subtitle_margin_override = anchor_px + title_h + 20
-
-                    # Generar ASS
-                    ass_path = None
-                    if enable_subtitles:
-                        ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
-                        generate_ass_subtitles(
-                            transcription_data, start, end, ass_path,
-                            subtitle_position=subtitle_position,
-                            font_name=sub_font_name,
-                            font_size=sub_font_size,
-                            subtitle_style=subtitle_style_key,
-                            margin_override=subtitle_margin_override,
-                        )
-
-                    progress_percent = int(70 + 28 * (idx / max(len(clips), 1)))
-                    progress_bar.progress(progress_percent)
-
-                    process_video_clip(
-                        video_to_process, start, end, ass_path, clip_output_path,
-                        video_format=video_format,
-                        hook_title=clip_title if show_title else "",
-                        title_position=title_position,
-                        title_font_size=title_font_size,
-                        title_style=title_style_key,
-                        title_font=title_font,
-                        subtitle_position=subtitle_position,
-                        camera_tracking=camera_tracking,
-                        fade_effect=fade_effect,
-                        use_gpu=use_gpu,
-                        source_is_portrait=source_is_portrait,
-                    )
+                st.session_state.transcription_data = transcription_data
+                st.session_state.clips = clips
+                st.session_state.video_to_process = video_to_process
+                st.session_state.video_analyzed = True
 
                 progress_bar.progress(100)
-                status_area.success("🎉 ¡Todo listo! Clips creados correctamente.")
-
-                # ── Guardar en historial ───────────────────────────────────
-                history = load_history(output_dir)
-                now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                for idx, clip in enumerate(clips):
-                    clip_title = clip.get("hook_title", f"Clip {idx+1}")
-                    safe_title = "".join(
-                        c for c in clip_title.replace(" ", "_").lower()
-                        if c.isalnum() or c in ("_", "-")
-                    )
-                    clip_output_name = f"clip_{idx+1}_{safe_title}_{subtitle_style_key}.mp4"
-                    clip_path        = os.path.join(output_dir, clip_output_name)
-                    if os.path.exists(clip_path):
-                        if not any(item.get("clip_path") == clip_path for item in history):
-                            history.append({
-                                "clip_name":             clip_output_name,
-                                "clip_path":             clip_path,
-                                "title":                 clip_title,
-                                "start":                 clip.get("start", 0),
-                                "end":                   clip.get("end", 0),
-                                "social_description":    clip.get("social_description", ""),
-                                "virality_score":        clip.get("virality_score", 85),
-                                "virality_explanation":  clip.get("virality_explanation", "Estructura narrativa sólida."),
-                                "created_at":            now_str,
-                                "video_format":          video_format,
-                            })
-                save_history(output_dir, history)
-
-                # Cache results in session state to avoid re-running on widget interactions
-                st.session_state.pipeline_done  = True
-                st.session_state.pipeline_clips = clips
-                st.session_state.pipeline_fmt   = video_format
-                st.session_state.pipeline_style = subtitle_style_key
-                st.session_state.output_dir_ss  = output_dir
+                status_area.success(f"🎉 ¡Análisis completo! Se encontraron {len(clips)} clips. Edítalos abajo antes de renderizar.")
+                st.rerun()
 
             except Exception as e:
-                st.error(f"❌ Error en el procesamiento: {e}")
+                st.error(f"❌ Error en el análisis: {e}")
                 import traceback
                 st.code(traceback.format_exc())
             finally:
                 if os.path.exists(temp_dir):
                     shutil.rmtree(temp_dir, ignore_errors=True)
-                if temp_uploaded_path and os.path.exists(temp_uploaded_path):
-                    try:
-                        os.remove(temp_uploaded_path)
-                    except Exception:
-                        pass
         else:
             st.warning("⚠️ Sube un video o ingresa la ruta de un archivo local válido.")
+
+    # ── 2. EDITING SECTION (BETWEEN STEPS) ────────────────────────────────────
+    if st.session_state.get("video_analyzed", False):
+        st.write("---")
+        st.subheader("📝 Edita los Clips y Subtítulos antes del Renderizado")
+        st.info("💡 Modifica los textos, el título o los tiempos abajo. Cuando termines, haz clic en '🎬 2. Procesar Clips' arriba para generar el video.")
+
+        for idx, clip in enumerate(st.session_state.clips):
+            with st.expander(f"🎬 Clip {idx+1}: {clip.get('hook_title', 'Sin título')}", expanded=True):
+                col_t, col_s, col_e = st.columns([2, 1, 1])
+                with col_t:
+                    clip["hook_title"] = st.text_input(
+                        "Título (Hook)",
+                        value=clip.get("hook_title", ""),
+                        key=f"edit_title_{idx}"
+                    )
+                with col_s:
+                    clip["start"] = st.number_input(
+                        "Inicio (segundos)",
+                        min_value=0.0,
+                        value=float(clip.get("start", 0)),
+                        step=0.5,
+                        key=f"edit_start_{idx}"
+                    )
+                with col_e:
+                    clip["end"] = st.number_input(
+                        "Fin (segundos)",
+                        min_value=clip["start"] + 0.5,
+                        value=float(clip.get("end", 0)),
+                        step=0.5,
+                        key=f"edit_end_{idx}"
+                    )
+                
+                clip["social_description"] = st.text_area(
+                    "Descripción sugerida para redes sociales",
+                    value=clip.get("social_description", ""),
+                    key=f"edit_desc_{idx}",
+                    rows=3
+                )
+                
+                # Render subtitle words editor
+                current_words = clip.get("words", [])
+                current_text = " ".join([w["word"] for w in current_words])
+                
+                edited_text = st.text_area(
+                    "Subtítulos (Edita el texto directamente. Separado por espacios)",
+                    value=current_text,
+                    key=f"edit_subs_{idx}",
+                    help="Puedes corregir errores de escritura. Si cambias la cantidad de palabras, la duración del clip se dividirá equitativamente entre las palabras."
+                )
+                
+                if edited_text.strip() != current_text.strip():
+                    new_word_strings = edited_text.strip().split()
+                    if len(new_word_strings) == len(current_words):
+                        for i, w_str in enumerate(new_word_strings):
+                            current_words[i]["word"] = w_str.upper()
+                        clip["words"] = current_words
+                    else:
+                        num_new = len(new_word_strings)
+                        if num_new > 0:
+                            clip_duration = clip["end"] - clip["start"]
+                            word_dur = clip_duration / num_new
+                            new_words = []
+                            for i, w_str in enumerate(new_word_strings):
+                                w_start = clip["start"] + i * word_dur
+                                w_end = clip["start"] + (i + 1) * word_dur
+                                new_words.append({
+                                    "word": w_str.upper(),
+                                    "start": w_start,
+                                    "end": w_end
+                                })
+                            clip["words"] = new_words
+                        else:
+                            clip["words"] = []
+
+    # ── 3. ACTION: RENDER CLIPS ───────────────────────────────────────────────
+    if render_btn:
+        video_to_process = st.session_state.video_to_process
+        clips = st.session_state.clips
+        temp_dir   = os.path.join(tempfile.gettempdir(), f"temp_gui_{uuid.uuid4().hex}")
+        output_dir = get_persistent_output_dir()
+        os.makedirs(temp_dir,   exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
+
+        try:
+            status_area.write(f"🎬 Comenzando renderizado de {len(clips)} clips...")
+            progress_bar.progress(0)
+
+            # Pre-compute portrait detection ONCE for all clips of this source video
+            source_is_portrait = is_portrait_video(video_to_process) if camera_tracking else False
+
+            for idx, clip in enumerate(clips):
+                start      = clip["start"]
+                end        = clip["end"]
+                clip_title = clip.get("hook_title", f"clip_{idx+1}")
+                safe_title = "".join(
+                    c for c in clip_title.replace(" ", "_").lower()
+                    if c.isalnum() or c in ("_", "-")
+                )
+                clip_output_name = f"clip_{idx+1}_{safe_title}_{subtitle_style_key}.mp4"
+                clip_output_path = os.path.join(output_dir, clip_output_name)
+
+                status_area.write(f"⏳ Paso 4/4: Procesando clip {idx+1}/{len(clips)}: {clip_title}...")
+
+                # Offset subtítulos si comparten borde con el título
+                subtitle_margin_override = None
+                if show_title and clip_title and enable_subtitles and title_position == subtitle_position:
+                    anchor_px, title_h = compute_title_info(
+                        clip_title, video_format, title_position, title_font_size
+                    )
+                    subtitle_margin_override = anchor_px + title_h + 20
+
+                # Generar ASS
+                ass_path = None
+                if enable_subtitles:
+                    ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
+                    generate_ass_subtitles(
+                        st.session_state.transcription_data, start, end, ass_path,
+                        subtitle_position=subtitle_position,
+                        font_name=sub_font_name,
+                        font_size=sub_font_size,
+                        subtitle_style=subtitle_style_key,
+                        margin_override=subtitle_margin_override,
+                        words_override=clip.get("words"),
+                    )
+
+                progress_percent = int(100 * (idx / max(len(clips), 1)))
+                progress_bar.progress(progress_percent)
+
+                process_video_clip(
+                    video_to_process, start, end, ass_path, clip_output_path,
+                    video_format=video_format,
+                    hook_title=clip_title if show_title else "",
+                    title_position=title_position,
+                    title_font_size=title_font_size,
+                    title_style=title_style_key,
+                    title_font=title_font,
+                    subtitle_position=subtitle_position,
+                    camera_tracking=camera_tracking,
+                    fade_effect=fade_effect,
+                    use_gpu=use_gpu,
+                    source_is_portrait=source_is_portrait,
+                )
+
+            progress_bar.progress(100)
+            status_area.success("🎉 ¡Todo listo! Clips creados correctamente.")
+
+            # ── Guardar en historial ───────────────────────────────────
+            history = load_history(output_dir)
+            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for idx, clip in enumerate(clips):
+                clip_title = clip.get("hook_title", f"Clip {idx+1}")
+                safe_title = "".join(
+                    c for c in clip_title.replace(" ", "_").lower()
+                    if c.isalnum() or c in ("_", "-")
+                )
+                clip_output_name = f"clip_{idx+1}_{safe_title}_{subtitle_style_key}.mp4"
+                clip_path        = os.path.join(output_dir, clip_output_name)
+                if os.path.exists(clip_path):
+                    if not any(item.get("clip_path") == clip_path for item in history):
+                        history.append({
+                            "clip_name":             clip_output_name,
+                            "clip_path":             clip_path,
+                            "title":                 clip_title,
+                            "start":                 clip.get("start", 0),
+                            "end":                   clip.get("end", 0),
+                            "social_description":    clip.get("social_description", ""),
+                            "virality_score":        clip.get("virality_score", 85),
+                            "virality_explanation":  clip.get("virality_explanation", "Estructura narrativa sólida."),
+                            "created_at":            now_str,
+                            "video_format":          video_format,
+                        })
+            save_history(output_dir, history)
+
+            # Cache results in session state to avoid re-running on widget interactions
+            st.session_state.pipeline_done  = True
+            st.session_state.pipeline_clips = clips
+            st.session_state.pipeline_fmt   = video_format
+            st.session_state.pipeline_style = subtitle_style_key
+            st.session_state.output_dir_ss  = output_dir
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"❌ Error en el procesamiento: {e}")
+            import traceback
+            st.code(traceback.format_exc())
+        finally:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            # We don't remove the temp video until process is done
+            if video_to_process and "temp_uploaded_" in video_to_process and os.path.exists(video_to_process):
+                try:
+                    os.remove(video_to_process)
+                except Exception:
+                    pass
 
     # ── Mostrar resultados cacheados (persisten entre widgets) ─────────────────
     if st.session_state.pipeline_done and st.session_state.pipeline_clips:
