@@ -87,18 +87,19 @@ SUBTITLE_STYLES = {
     },
     "capcut": {
         "label":      "🎬 CapCut (letra blanca + borde y sombra)",
-        "primary":    "&H88FFFFFF",  # blanco tenue — en espera
+        "primary":    "&H99FFFFFF",  # blanco tenue — en espera
         "outline":    "&H00000000",
         "back":       "&H00000000",
         "border_w":   3,
         "shadow_w":   4,
         "border_sty": 1,
-        "highlight":  "&H0000FFFF",  # amarillo — activa
+        "highlight":  "&H00FFFFFF",  # blanco puro brillante — activa
     },
 }
 
 # Fonts that are reliable on Windows systems
 AVAILABLE_FONTS = [
+    "Montserrat",
     "Arial Black",
     "Impact",
     "Arial",

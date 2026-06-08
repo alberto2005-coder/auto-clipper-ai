@@ -59,6 +59,7 @@ TITLE_STYLES = {
 
 # Fonts reliable on Windows
 TITLE_FONTS = [
+    "Montserrat",
     "Arial Bold",
     "Impact",
     "Arial Black",
