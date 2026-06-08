@@ -206,6 +206,12 @@ if enable_subtitles:
         "Tamaño de letra (subtítulos)",
         min_value=40, max_value=130, value=75, step=5,
     )
+    sub_words_per_line = st.sidebar.slider(
+        "Palabras por bloque",
+        min_value=1, max_value=8, value=3, step=1,
+        help="Cuántas palabras se muestran al mismo tiempo en pantalla. Menos palabras hace que los subtítulos sean más rápidos y cortos."
+    )
+    os.environ["SUBTITLE_CHUNK_SIZE"] = str(sub_words_per_line)
     subtitle_position = st.sidebar.radio(
         "Posición de los subtítulos",
         options=["bottom", "center", "top"],
@@ -216,6 +222,7 @@ else:
     subtitle_style_key = "tiktok"
     sub_font_name      = "Arial Black"
     sub_font_size      = 75
+    os.environ["SUBTITLE_CHUNK_SIZE"] = "3"
     subtitle_position  = "bottom"
 
 st.sidebar.markdown("---")

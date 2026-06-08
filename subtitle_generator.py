@@ -167,10 +167,10 @@ def generate_ass_subtitles(
     # ── Style preset ──────────────────────────────────────────────────────────
     style = SUBTITLE_STYLES.get(subtitle_style, SUBTITLE_STYLES["tiktok"])
 
-    # ASS PrimaryColour   = highlight (active word via \k karaoke)
-    # ASS SecondaryColour = primary   (base / waiting word color)
-    ass_primary   = style["highlight"]   # active word color
-    ass_secondary = style["primary"]     # waiting word color
+    # ASS PrimaryColour   = base / waiting word color (PrimaryColour in ASS style definition)
+    # ASS SecondaryColour = highlight / active word color (SecondaryColour in ASS style definition)
+    ass_primary   = style["primary"]       # waiting word color (non-active)
+    ass_secondary = style["highlight"]     # active word color (under karaoke tag)
 
     # ── Build word list ───────────────────────────────────────────────────────
     all_words = []
@@ -190,9 +190,10 @@ def generate_ass_subtitles(
         return False
 
     # ── ASS header ────────────────────────────────────────────────────────────
-    # NOTE: PrimaryColour & SecondaryColour are deliberately swapped vs the old
-    # code so that the \k karaoke tag highlights the ACTIVE word (Primary) while
-    # waiting words show the base color (Secondary).
+    # Standard ASS Karaoke uses SecondaryColour for the color of the text *before*
+    # the karaoke highlight sweeps over it, and PrimaryColour for the color *after*.
+    # In order to make waiting words show primary (waiting) and active show highlight,
+    # we assign ass_primary (waiting) to SecondaryColour and ass_secondary (highlight) to PrimaryColour.
     ass_header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: 1080
@@ -200,7 +201,7 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},{font_size},{ass_primary},{ass_secondary},{style['outline']},{style['back']},1,0,0,0,100,100,0,0,{style['border_sty']},{style['border_w']},{style['shadow_w']},{alignment},100,100,{margin_v},1
+Style: Default,{font_name},{font_size},{ass_secondary},{ass_primary},{style['outline']},{style['back']},1,0,0,0,100,100,0,0,{style['border_sty']},{style['border_w']},{style['shadow_w']},{alignment},100,100,{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -212,7 +213,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     # Duration ≈ 1-4 seconds → \fad(250,150) works correctly with no flicker.
     # \k<cs> tags advance the karaoke highlight word by word.
     #
-    CHUNK_SIZE = 4
+    CHUNK_SIZE = int(os.environ.get("SUBTITLE_CHUNK_SIZE", 3))
     FADE_IN_MS  = 250   # ms
     FADE_OUT_MS = 150   # ms
 
