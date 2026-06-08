@@ -593,6 +593,8 @@ with tab_proc:
                 # Post-processing helper function to get words for each clip
                 for idx, clip in enumerate(clips):
                     clip["words"] = get_words_for_range(transcription_data, clip["start"], clip["end"])
+                    clip["prev_start"] = clip["start"]
+                    clip["prev_end"] = clip["end"]
 
                 st.session_state.transcription_data = transcription_data
                 st.session_state.clips = clips
@@ -644,6 +646,18 @@ with tab_proc:
                         step=0.5,
                         key=f"edit_end_{idx}"
                     )
+                
+                # Auto-update words if range changes
+                if "prev_start" not in clip:
+                    clip["prev_start"] = clip["start"]
+                if "prev_end" not in clip:
+                    clip["prev_end"] = clip["end"]
+                
+                if clip["start"] != clip["prev_start"] or clip["end"] != clip["prev_end"]:
+                    clip["words"] = get_words_for_range(st.session_state.transcription_data, clip["start"], clip["end"])
+                    clip["prev_start"] = clip["start"]
+                    clip["prev_end"] = clip["end"]
+                    st.rerun()
                 
                 clip["social_description"] = st.text_area(
                     "Descripción sugerida para redes sociales",
