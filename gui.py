@@ -107,9 +107,9 @@ os.makedirs(WORKSPACE_FONTS_DIR, exist_ok=True)
 def download_montserrat_if_needed():
     import urllib.request
     fonts_to_download = {
-        "Montserrat-Bold.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf",
-        "Montserrat-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Regular.ttf",
-        "Montserrat-Medium.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf",
+        "Montserrat-Bold.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Bold.ttf",
+        "Montserrat-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Regular.ttf",
+        "Montserrat-Medium.ttf": "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Medium.ttf",
     }
     for filename, url in fonts_to_download.items():
         dest = os.path.join(WORKSPACE_FONTS_DIR, filename)
