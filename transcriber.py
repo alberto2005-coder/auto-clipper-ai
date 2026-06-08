@@ -200,10 +200,10 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
                 "response_format": "verbose_json",
                 "language": language,
             }
-            # timestamp_granularities is an OpenAI-specific param;
-            # Groq silently ignores or rejects it — don't send it to Groq.
-            if provider == "openai":
-                data["timestamp_granularities[]"] = ["word", "segment"]
+            # En APIs compatibles con OpenAI (incluyendo Groq), se puede solicitar granularidad de palabra y segmento.
+            # Groq soporta timestamp_granularities[] si se envía correctamente.
+            data["timestamp_granularities[]"] = ["word", "segment"]
+            
             response = requests.post(url, headers=headers, files=files, data=data)
             response.raise_for_status()
             res_json = response.json()
@@ -214,7 +214,7 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
 
             
         transcription_data = []
-        # OpenAI returns words at top-level; Groq returns them inside each segment.
+        # OpenAI devuelve 'words' en el nivel raíz; Groq o fallbacks pueden devolverlo dentro de los segmentos.
         top_level_words = res_json.get("words") or []
 
         for segment in (res_json.get("segments") or []):
@@ -222,22 +222,39 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
             segment_end   = segment["end"]
             segment_words = []
 
-            # Try segment-level words first (Groq format), fall back to top-level (OpenAI)
+            # Intentar obtener palabras de la respuesta de la API
             raw_words = segment.get("words") or []
             if not raw_words:
-                # OpenAI top-level words: filter by segment time range
                 raw_words = [
                     w for w in top_level_words
                     if w["start"] >= segment_start and w["end"] <= segment_end + 0.1
                 ]
 
-            for w in raw_words:
-                segment_words.append({
-                    "word":        w.get("word", w.get("text", "")),
-                    "start":       w["start"],
-                    "end":         w["end"],
-                    "probability": w.get("probability", 1.0),
-                })
+            # BACKBACK / GENERACIÓN ESTIMADA: Si la API de nube no devolvió palabras individuales (ej. límites de Groq)
+            # estimamos la duración de cada palabra proporcionalmente sobre el segmento de audio para que no falle el karaoke.
+            if not raw_words and segment.get("text"):
+                words_text = segment["text"].strip().split()
+                if words_text:
+                    n_w = len(words_text)
+                    duration = max(0.1, segment_end - segment_start)
+                    word_duration = duration / n_w
+                    for i, w_txt in enumerate(words_text):
+                        w_start = segment_start + (i * word_duration)
+                        w_end   = w_start + word_duration
+                        segment_words.append({
+                            "word":        w_txt,
+                            "start":       w_start,
+                            "end":         w_end,
+                            "probability": 1.0
+                        })
+            else:
+                for w in raw_words:
+                    segment_words.append({
+                        "word":        w.get("word", w.get("text", "")),
+                        "start":       w["start"],
+                        "end":         w["end"],
+                        "probability": w.get("probability", 1.0),
+                    })
 
             transcription_data.append({
                 "start": segment_start,
@@ -248,8 +265,8 @@ def transcribe_audio_cloud(audio_path, api_key, provider="groq", api_url=None, l
 
         if not transcription_data:
             raise RuntimeError(
-                "La transcripci\u00f3n en la nube no devolvi\u00f3 segmentos con timestamps. "
-                "Verifica que el audio tenga voz clara o usa transcripci\u00f3n local con Whisper."
+                "La transcripción en la nube no devolvió segmentos con timestamps. "
+                "Verifica que el audio tenga voz clara o usa transcripción local con Whisper."
             )
         return transcription_data
 
