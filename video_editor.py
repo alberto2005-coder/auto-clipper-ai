@@ -424,9 +424,9 @@ def process_video_clip(
         avoids the fragile arg-list mutation used in the old GPU fallback."""
         base = [
             ffmpeg_bin, "-y",
+            "-i",  video_path,
             "-ss", str(start_time),
             "-to", str(end_time),
-            "-i",  video_path,
             "-vf", filter_chain,
         ]
         if audio_filters:
