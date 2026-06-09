@@ -11,6 +11,14 @@ import json
 import datetime
 
 
+def get_persistent_output_dir():
+    home = os.path.expanduser("~")
+    videos_dir = os.path.join(home, "Videos")
+    path = os.path.join(videos_dir if os.path.exists(videos_dir) else home, "AutoClipperAI")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom Font Handling & Registration
 # ─────────────────────────────────────────────────────────────────────────────
@@ -166,13 +174,6 @@ def get_words_for_range(transcription_data, start, end):
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
-
-def get_persistent_output_dir():
-    home = os.path.expanduser("~")
-    videos_dir = os.path.join(home, "Videos")
-    path = os.path.join(videos_dir if os.path.exists(videos_dir) else home, "AutoClipperAI")
-    os.makedirs(path, exist_ok=True)
-    return path
 
 
 def load_history(output_dir):
