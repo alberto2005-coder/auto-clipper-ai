@@ -1,7 +1,15 @@
 import sys
 import os
 import socket
+import asyncio
 import streamlit.web.cli as stcli
+
+
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception as e:
+        print(f"[*] Warning: Could not set WindowsSelectorEventLoopPolicy: {e}")
 
 
 def _find_free_port(start: int = 8501) -> int:
@@ -32,6 +40,7 @@ def main():
         "streamlit", "run", gui_path,
         f"--server.port={port}",
         "--global.developmentMode=false",
+        "--server.enableWebsocketCompression=false",
     ]
 
     sys.exit(stcli.main())
