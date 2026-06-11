@@ -103,7 +103,7 @@ def register_font_windows(font_path):
             user32 = ctypes.WinDLL('user32', use_last_error=True)
             HWND_BROADCAST = 0xFFFF
             WM_FONTCHANGE = 0x001D
-            user32.SendMessageW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0)
+            user32.SendNotifyMessageW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0)
             return True
     except Exception as e:
         print(f"Error registering font: {e}")
@@ -129,7 +129,9 @@ def download_montserrat_if_needed():
                 print(f"[!] Error downloading {filename}: {e}")
 
 def load_and_register_local_fonts():
-    download_montserrat_if_needed()
+    import threading
+    threading.Thread(target=download_montserrat_if_needed, daemon=True).start()
+    
     custom_fonts_found = []
     if os.path.exists(WORKSPACE_FONTS_DIR):
         for filename in os.listdir(WORKSPACE_FONTS_DIR):
