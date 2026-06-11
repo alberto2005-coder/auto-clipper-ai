@@ -130,17 +130,31 @@ def download_montserrat_if_needed():
 
 def load_and_register_local_fonts():
     import threading
+    print("==================================================")
+    print("🔤 INITIALIZING FONTS REGISTRATION SYSTEM...")
+    print("==================================================")
+    print(f"[*] Starting Montserrat download thread (non-blocking)...")
     threading.Thread(target=download_montserrat_if_needed, daemon=True).start()
     
     custom_fonts_found = []
     if os.path.exists(WORKSPACE_FONTS_DIR):
+        print(f"[*] Scanning fonts directory: {WORKSPACE_FONTS_DIR}")
         for filename in os.listdir(WORKSPACE_FONTS_DIR):
             if filename.lower().endswith(('.ttf', '.otf')):
                 font_path = os.path.join(WORKSPACE_FONTS_DIR, filename)
-                register_font_windows(font_path)
-                name = get_font_name_from_ttf(font_path)
-                if name and name not in custom_fonts_found:
-                    custom_fonts_found.append(name)
+                try:
+                    registered = register_font_windows(font_path)
+                    name = get_font_name_from_ttf(font_path)
+                    if registered:
+                        print(f"[+] Windows Registered Font: '{name}' ({filename})")
+                    else:
+                        print(f"[-] Font already registered or skipped: '{name}'")
+                    if name and name not in custom_fonts_found:
+                        custom_fonts_found.append(name)
+                except Exception as fe:
+                    print(f"[!] Error registering font file {filename}: {fe}")
+    print(f"[*] Font registration complete. Registered: {custom_fonts_found}")
+    print("==================================================")
     return custom_fonts_found
 
 # Load custom fonts
