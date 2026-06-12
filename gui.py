@@ -680,7 +680,7 @@ with tab_proc:
                     "Descripción sugerida para redes sociales",
                     value=clip.get("social_description", ""),
                     key=f"edit_desc_{idx}",
-                    rows=3
+                    height=100
                 )
                 
                 # Render subtitle words editor
