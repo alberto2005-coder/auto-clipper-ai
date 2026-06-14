@@ -648,18 +648,20 @@ with tab_proc:
                         key=f"edit_title_{idx}"
                     )
                 with col_s:
+                    val_start = float(clip.get("start", 0))
                     clip["start"] = st.number_input(
                         "Inicio (segundos)",
                         min_value=0.0,
-                        value=float(clip.get("start", 0)),
+                        value=val_start,
                         step=0.5,
                         key=f"edit_start_{idx}"
                     )
                 with col_e:
+                    val_end = max(float(clip.get("end", 0)), clip["start"] + 0.5)
                     clip["end"] = st.number_input(
                         "Fin (segundos)",
                         min_value=clip["start"] + 0.5,
-                        value=float(clip.get("end", 0)),
+                        value=val_end,
                         step=0.5,
                         key=f"edit_end_{idx}"
                     )
@@ -979,11 +981,12 @@ with tab_edit:
                 format="%.1f",
             )
         with col_end:
+            val_trim_end = max(clip_duration_edit, trim_start + 1.0)
             trim_end = st.number_input(
                 "⏹️ Fin del recorte (segundos)",
                 min_value=trim_start + 1.0,
-                max_value=clip_duration_edit,
-                value=clip_duration_edit,
+                max_value=val_trim_end,
+                value=val_trim_end,
                 step=0.5,
                 format="%.1f",
             )

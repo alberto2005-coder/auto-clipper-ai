@@ -174,12 +174,10 @@ Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo e
 
 Analiza la transcripción con marcas de tiempo y selecciona la MAYOR CANTIDAD POSIBLE de segmentos (hasta {max_clips} clips).
 - Si el video es largo (por ejemplo, 1 hora), DEBES encontrar entre {min_clips} y {max_clips} clips. No te quedes corto.
-- Cada clip debe cubrir un momento COMPLETO: si alguien empieza a contar una historia, una anécdota, un argumento o una reflexión, el clip DEBE incluir el desenlace o conclusión de esa idea. No cortes en mitad de una frase o pensamiento.
-
-REGLAS OBLIGATORIAS DE DURACIÓN:
-- La duración mínima de cada clip es de 30 segundos (end - start >= 30.0). PROHIBIDO clips de menos de 30 segundos.
-- La duración máxima es de 90 segundos. Si el momento lo requiere para completar la narrativa, puedes llegar a 90 segundos.
-- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos menores a 30 segundos.
+- Cada clip debe cubrir un momento COMPLETO: si alguien empieza a contar una historia, una aREGLAS OBLIGATORIAS DE DURACIÓN:
+- La duración ideal de cada clip debe ser de entre 30 y 75 segundos para permitir que el orador o entrevistado exprese su idea, argumento, anécdota o respuesta de forma COMPLETA y con sentido cerrado.
+- Se permiten clips de entre 20 y 90 segundos siempre y cuando capturen una idea o respuesta completa de principio a fin sin cortar abruptamente al orador antes de terminar de explicar su punto.
+- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos menores a 20 segundos.
 
 REGLAS PARA EVITAR REPETICIÓN:
 - Los clips NO pueden solaparse entre sí. Cada clip debe empezar al menos 10 segundos después del final del clip anterior.
@@ -187,10 +185,12 @@ REGLAS PARA EVITAR REPETICIÓN:
 
 TÍTULOS Y DESCRIPCIONES:
 - Los títulos deben sonar 100% naturales, escritos por un creador de contenido humano.
+- El gancho (hook) del título debe ser extremadamente magnético, directo, apelando a la curiosidad, el dolor o el deseo del espectador. Debe resumir la idea central en una sola frase corta que te obligue a quedarte a ver el video. Evita generalidades.
 - EVITA clichés de IA: "revolucionario", "el secreto de", "increíble", "descubre cómo", "impactante".
 - Usa intriga, preguntas directas o afirmaciones contundentes.
   ❌ Malo: "El Secreto Para Ser Millonario"
   ✅ Bueno: "Por esto no eres millonario a los 20"
+- En 'social_description', además de un copy persuasivo e intrigante, incluye obligatoriamente de 3 a 5 hashtags altamente relevantes y virales relacionados con el tema (por ejemplo: #negocios, #desarrollopersonal, #podcast, etc.) al final del texto.
 
 EVALUACIÓN DE VIRALIDAD:
 - Asigna un "virality_score" entero del 0 al 100 a cada clip.
@@ -201,15 +201,15 @@ Transcripción:
 
 Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
 [
-  {{
+  {
     "start": float,
     "end": float,
     "hook_title": "Título humano y viral",
-    "social_description": "Copywriting para la descripción del video",
+    "social_description": "Copywriting para la descripción del video con hashtags virales al final",
     "virality_score": int,
     "virality_explanation": "Por qué enganchará a la audiencia",
     "explanation": "Por qué este momento es viral"
-  }}
+  }
 ]
 """
 
@@ -294,7 +294,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             data = [data]
 
         # ── Normalize each clip ───────────────────────────────────────────────
-        MIN_DURATION = 30.0
+        MIN_DURATION = 20.0
         MAX_DURATION = 90.0
         normalized_data = []
 
@@ -324,7 +324,11 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             if "end" not in n:
                 n["end"] = n["start"] + MIN_DURATION
 
-            # Enforce minimum duration (30s)
+            # Handle swapped start/end times safely
+            if n["start"] > n["end"]:
+                n["start"], n["end"] = n["end"], n["start"]
+
+            # Enforce minimum duration (20s)
             clip_dur = n["end"] - n["start"]
             if clip_dur < MIN_DURATION:
                 extra = MIN_DURATION - clip_dur
@@ -339,6 +343,13 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             if max_valid_end > 0:
                 n["end"]   = min(n["end"],   max_valid_end)
                 n["start"] = min(n["start"], max(0.0, max_valid_end - MIN_DURATION))
+
+            # Recheck after clamping (could violate start <= end or MIN_DURATION if max_valid_end is very small)
+            if n["start"] > n["end"]:
+                n["start"], n["end"] = n["end"], n["start"]
+            if n["end"] - n["start"] < 0.5:
+                n["start"] = 0.0
+                n["end"] = max_valid_end
 
             n["start"] = round(n["start"], 2)
             n["end"]   = round(n["end"],   2)
@@ -370,6 +381,16 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             # Virality explanation
             for k in ["virality_explanation", "viralityExplanation", "reason"]:
                 if k in item:
+                    n["virality_explanation"] = str(item[k]); break
+            if "virality_explanation" not in n:
+                n["virality_explanation"] = item.get("explanation", "Estructura narrativa sólida y gancho inicial de impacto.")
+
+            n["explanation"] = item.get("explanation", "")
+            normalized_data.append(n)
+
+        # Final deduplication pass within a single chunk result
+        normalized_data = _deduplicate_clips(normalized_data, min_gap=10.0)
+        return normalized_dataem:
                     n["virality_explanation"] = str(item[k]); break
             if "virality_explanation" not in n:
                 n["virality_explanation"] = item.get("explanation", "Estructura narrativa sólida y gancho inicial de impacto.")
