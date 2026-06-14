@@ -201,7 +201,7 @@ Transcripción:
 
 Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
 [
-  {
+  {{
     "start": float,
     "end": float,
     "hook_title": "Título humano y viral",
@@ -209,7 +209,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
     "virality_score": int,
     "virality_explanation": "Por qué enganchará a la audiencia",
     "explanation": "Por qué este momento es viral"
-  }
+  }}
 ]
 """
 
