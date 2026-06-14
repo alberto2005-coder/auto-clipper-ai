@@ -390,16 +390,6 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
 
         # Final deduplication pass within a single chunk result
         normalized_data = _deduplicate_clips(normalized_data, min_gap=10.0)
-        return normalized_dataem:
-                    n["virality_explanation"] = str(item[k]); break
-            if "virality_explanation" not in n:
-                n["virality_explanation"] = item.get("explanation", "Estructura narrativa sólida y gancho inicial de impacto.")
-
-            n["explanation"] = item.get("explanation", "")
-            normalized_data.append(n)
-
-        # Final deduplication pass within a single chunk result
-        normalized_data = _deduplicate_clips(normalized_data, min_gap=10.0)
         return normalized_data
 
     except Exception as e:
