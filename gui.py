@@ -131,7 +131,7 @@ def download_montserrat_if_needed():
 def load_and_register_local_fonts():
     import threading
     print("==================================================")
-    print("🔤 INITIALIZING FONTS REGISTRATION SYSTEM...")
+    print("[Fonts] INITIALIZING FONTS REGISTRATION SYSTEM...")
     print("==================================================")
     print(f"[*] Starting Montserrat download thread (non-blocking)...")
     threading.Thread(target=download_montserrat_if_needed, daemon=True).start()
