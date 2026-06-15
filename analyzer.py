@@ -174,10 +174,13 @@ Eres un editor de video experto en YouTube Shorts, TikTok y Reels. Tu objetivo e
 
 Analiza la transcripción con marcas de tiempo y selecciona la MAYOR CANTIDAD POSIBLE de segmentos (hasta {max_clips} clips).
 - Si el video es largo (por ejemplo, 1 hora), DEBES encontrar entre {min_clips} y {max_clips} clips. No te quedes corto.
-- Cada clip debe cubrir un momento COMPLETO: si alguien empieza a contar una historia, una aREGLAS OBLIGATORIAS DE DURACIÓN:
-- La duración ideal de cada clip debe ser de entre 30 y 75 segundos para permitir que el orador o entrevistado exprese su idea, argumento, anécdota o respuesta de forma COMPLETA y con sentido cerrado.
-- Se permiten clips de entre 20 y 90 segundos siempre y cuando capturen una idea o respuesta completa de principio a fin sin cortar abruptamente al orador antes de terminar de explicar su punto.
-- Está ESTRICTAMENTE PROHIBIDO seleccionar fragmentos menores a 20 segundos.
+- Cada clip debe cubrir un momento COMPLETO: si alguien empieza a contar una historia, una anécdota, un argumento o una reflexión, el clip DEBE incluir el inicio y el desenlace o conclusión de esa idea. No cortes en mitad de una frase o pensamiento.
+
+REGLAS OBLIGATORIAS DE DURACIÓN Y COHERENCIA:
+- La duración de cada clip debe definirse ÚNICAMENTE por los límites naturales de la idea, argumento, anécdota o respuesta que se está explicando.
+- El clip debe durar exactamente lo necesario para que el orador empiece y termine de explicar su punto, sin importar si dura 12, 25, 45, 60 o 90 segundos. No te limites por números fijos ni fuerces clips artificiales a durar exactamente 30 segundos.
+- Inicia el clip exactamente en el gancho (hook) inicial de la idea y termínalo justo cuando el orador complete y redondee su argumento o explicación. No cortes antes de terminar el video o antes de que el orador complete la idea.
+- La duración máxima permitida es de 90 segundos. La duración mínima es de 10 segundos.
 
 REGLAS PARA EVITAR REPETICIÓN:
 - Los clips NO pueden solaparse entre sí. Cada clip debe empezar al menos 10 segundos después del final del clip anterior.
@@ -294,7 +297,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             data = [data]
 
         # ── Normalize each clip ───────────────────────────────────────────────
-        MIN_DURATION = 20.0
+        MIN_DURATION = 10.0
         MAX_DURATION = 90.0
         normalized_data = []
 
@@ -328,7 +331,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             if n["start"] > n["end"]:
                 n["start"], n["end"] = n["end"], n["start"]
 
-            # Enforce minimum duration (20s)
+            # Enforce minimum duration (10s)
             clip_dur = n["end"] - n["start"]
             if clip_dur < MIN_DURATION:
                 extra = MIN_DURATION - clip_dur
