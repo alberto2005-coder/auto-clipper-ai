@@ -92,15 +92,13 @@ def main():
             clip_output_name = f"clip_{idx+1}_{safe_title}.mp4"
             clip_output_path = os.path.join(args.output_dir, clip_output_name)
 
-            ass_path = os.path.join(temp_dir, f"subtitles_{idx+1}.ass")
-            generate_ass_subtitles(transcription_data, start, end, ass_path)
-
+            ass_path = None # Subtitles disabled for maximum speed
             process_video_clip(
                 args.video_path, start, end, ass_path, clip_output_path,
-                camera_tracking=args.camera_tracking,
+                camera_tracking=False, # Camera tracking disabled for maximum speed
                 fade_effect=args.fade_effect,
                 use_gpu=args.use_gpu,
-                source_is_portrait=source_portrait,
+                source_is_portrait=False,
             )
             
         print(f"\n[+] Proceso completado con éxito. Clips guardados en: {args.output_dir}")

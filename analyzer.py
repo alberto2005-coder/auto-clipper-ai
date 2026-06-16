@@ -69,7 +69,7 @@ def select_best_moments_with_llm(
     # ── Chunking logic for long videos ────────────────────────────────────────
     if not bypass_chunking:
         total_duration = max(seg.get("end", 0.0) for seg in transcription_data)
-        CHUNK_SIZE = 900.0  # 15 minutes per chunk
+        CHUNK_SIZE = 300.0  # 5 minutes per chunk
 
         if total_duration > CHUNK_SIZE:
             print(f"[*] Video duration ({total_duration:.1f}s) is long. Splitting into {CHUNK_SIZE}s chunks...")
@@ -177,10 +177,11 @@ Analiza la transcripción con marcas de tiempo y selecciona la MAYOR CANTIDAD PO
 - Cada clip debe cubrir un momento COMPLETO: si alguien empieza a contar una historia, una anécdota, un argumento o una reflexión, el clip DEBE incluir el inicio y el desenlace o conclusión de esa idea. No cortes en mitad de una frase o pensamiento.
 
 REGLAS OBLIGATORIAS DE DURACIÓN Y COHERENCIA:
-- La duración de cada clip debe definirse ÚNICAMENTE por los límites naturales de la idea, argumento, anécdota o respuesta que se está explicando.
-- El clip debe durar exactamente lo necesario para que el orador empiece y termine de explicar su punto, sin importar si dura 12, 25, 45, 60 o 90 segundos. No te limites por números fijos ni fuerces clips artificiales a durar exactamente 30 segundos.
-- Inicia el clip exactamente en el gancho (hook) inicial de la idea y termínalo justo cuando el orador complete y redondee su argumento o explicación. No cortes antes de terminar el video o antes de que el orador complete la idea.
-- La duración máxima permitida es de 90 segundos. La duración mínima es de 10 segundos.
+- La duración de cada clip debe definirse ÚNICAMENTE por los límites naturales del STORYTELLING y de la idea o argumento que se está explicando.
+- Cada clip debe ser autocontenido y tener una estructura narrativa coherente: Gancho (Hook/Introducción), Desarrollo del argumento y Desenlace/Resolución del punto. No elijas fragmentos sin sentido o que queden truncados.
+- El clip debe durar exactamente lo necesario para que el orador complete y redondee su idea, con un máximo de 60 segundos. Está ESTRICTAMENTE PROHIBIDO que el clip dure más de 60 segundos o que se corte de golpe a mitad de una frase o pensamiento.
+- La duración ideal es de entre 15 y 55 segundos. La duración mínima absoluta es de 10 segundos.
+- Las marcas de tiempo de la transcripción comprimida están agrupadas en bloques de 15 segundos para optimizar espacio, pero tú puedes y debes estimar marcas de inicio ('start') y fin ('end') con decimales precisos para que el corte del video sea limpio y profesional, sin cortar palabras del orador.
 
 REGLAS PARA EVITAR REPETICIÓN:
 - Los clips NO pueden solaparse entre sí. Cada clip debe empezar al menos 10 segundos después del final del clip anterior.
@@ -298,7 +299,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
 
         # ── Normalize each clip ───────────────────────────────────────────────
         MIN_DURATION = 10.0
-        MAX_DURATION = 90.0
+        MAX_DURATION = 60.0
         normalized_data = []
 
         for item in data:
@@ -337,7 +338,7 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
                 extra = MIN_DURATION - clip_dur
                 n["start"] = max(0.0, n["start"] - extra / 2)
                 n["end"]   = n["end"] + extra / 2
-            # Enforce maximum duration (90s)
+            # Enforce maximum duration (60s)
             if n["end"] - n["start"] > MAX_DURATION:
                 n["end"] = n["start"] + MAX_DURATION
 

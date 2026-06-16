@@ -435,7 +435,7 @@ def process_video_clip(
         if use_gpu_flag:
             base += ["-c:v", "h264_nvenc", "-preset", "fast"]
         else:
-            base += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22"]
+            base += ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "23"]
         base += ["-c:a", "aac", "-b:a", "192k", output_path]
         return base
 

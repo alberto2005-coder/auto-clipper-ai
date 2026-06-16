@@ -334,11 +334,7 @@ video_format = st.sidebar.radio(
     help="**9:16** → TikTok / Shorts / Reels\n\n**16:9** → YouTube horizontal\n\n**1:1** → Instagram Feed",
 )
 
-camera_tracking = st.sidebar.checkbox(
-    "🎥 Seguimiento inteligente de rostros",
-    value=True,
-    help="Centra la cámara en la cara detectada. Se desactiva automáticamente si el video ya es vertical.",
-)
+camera_tracking = False
 
 fade_effect = st.sidebar.checkbox(
     "🎬 Animación de Entrada/Salida (Fade)",
@@ -354,49 +350,12 @@ FORMAT_LABELS = {
 
 st.sidebar.markdown("---")
 
-# ── 🎨 Subtítulos ────────────────────────────────────────────────────────────
-st.sidebar.header("🎨 Estilo de Subtítulos")
-
-enable_subtitles = st.sidebar.checkbox(
-    "✏️ Añadir subtítulos dinámicos",
-    value=True,
-    help="Desactiva si el video ya tiene subtítulos o no quieres añadirlos.",
-)
-
-if enable_subtitles:
-    subtitle_style_key = st.sidebar.selectbox(
-        "Estilo de color",
-        options=list(SUBTITLE_STYLES.keys()),
-        format_func=lambda k: SUBTITLE_STYLES[k]["label"],
-        index=0,
-    )
-    sub_font_name = st.sidebar.selectbox(
-        "Tipo de letra (subtítulos)",
-        options=combined_available_fonts,
-        index=0,
-    )
-    sub_font_size = st.sidebar.slider(
-        "Tamaño de letra (subtítulos)",
-        min_value=40, max_value=130, value=75, step=5,
-    )
-    sub_words_per_line = st.sidebar.slider(
-        "Palabras por bloque",
-        min_value=1, max_value=8, value=3, step=1,
-        help="Cuántas palabras se muestran al mismo tiempo en pantalla. Menos palabras hace que los subtítulos sean más rápidos y cortos."
-    )
-    os.environ["SUBTITLE_CHUNK_SIZE"] = str(sub_words_per_line)
-    subtitle_position = st.sidebar.radio(
-        "Posición de los subtítulos",
-        options=["bottom", "center", "top"],
-        format_func=lambda p: {"bottom": "⬇️ Abajo", "center": "↔️ Centro", "top": "⬆️ Arriba"}[p],
-        index=0,
-    )
-else:
-    subtitle_style_key = "tiktok"
-    sub_font_name      = "Arial Black"
-    sub_font_size      = 75
-    os.environ["SUBTITLE_CHUNK_SIZE"] = "3"
-    subtitle_position  = "bottom"
+enable_subtitles = False
+subtitle_style_key = "tiktok"
+sub_font_name      = "Arial Black"
+sub_font_size      = 75
+os.environ["SUBTITLE_CHUNK_SIZE"] = "3"
+subtitle_position  = "bottom"
 
 st.sidebar.markdown("---")
 
