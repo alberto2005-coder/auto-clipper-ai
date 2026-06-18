@@ -496,6 +496,7 @@ with tab_proc:
         temp_uploaded_path = None
 
         if uploaded_file is not None:
+            uploaded_file.seek(0)
             output_dir = get_persistent_output_dir()
             temp_uploads_dir = os.path.join(output_dir, "temp_uploads")
             os.makedirs(temp_uploads_dir, exist_ok=True)

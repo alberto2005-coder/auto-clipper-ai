@@ -134,12 +134,12 @@ def select_best_moments_with_llm(
 
     print(f"[*] Analyzing transcription for key moments using LLM ({provider} - {model})...")
 
-    # ── Compress transcript into 15-second blocks ─────────────────────────────
+    # ── Compress transcript into 5-second blocks ─────────────────────────────
     compressed_transcript = []
     current_start = None
     current_end   = None
     current_texts = []
-    TARGET_DURATION = 15.0
+    TARGET_DURATION = 5.0
 
     for seg in transcription_data:
         start = seg.get("start", 0.0)
@@ -180,8 +180,9 @@ REGLAS OBLIGATORIAS DE DURACIÓN Y COHERENCIA:
 - La duración de cada clip debe definirse ÚNICAMENTE por los límites naturales del STORYTELLING y de la idea o argumento que se está explicando.
 - Cada clip debe ser autocontenido y tener una estructura narrativa coherente: Gancho (Hook/Introducción), Desarrollo del argumento y Desenlace/Resolución del punto. No elijas fragmentos sin sentido o que queden truncados.
 - El clip debe durar exactamente lo necesario para que el orador complete y redondee su idea, con un máximo de 60 segundos. Está ESTRICTAMENTE PROHIBIDO que el clip dure más de 60 segundos o que se corte de golpe a mitad de una frase o pensamiento.
-- La duración ideal es de entre 15 y 55 segundos. La duración mínima absoluta es de 10 segundos.
-- Las marcas de tiempo de la transcripción comprimida están agrupadas en bloques de 15 segundos para optimizar espacio, pero tú puedes y debes estimar marcas de inicio ('start') y fin ('end') con decimales precisos para que el corte del video sea limpio y profesional, sin cortar palabras del orador.
+- La duración ideal debe ser variada y mixta según la naturaleza del momento (por ejemplo, algunos clips de 12s, otros de 25s, otros de 42s, otros de 55s). No los hagas durar siempre los mismos segundos (como siempre 15s o siempre 20s). Varía las duraciones para capturar momentos y diálogos completos de manera orgánica.
+- La duración mínima absoluta es de 10 segundos.
+- Las marcas de tiempo de la transcripción comprimida están agrupadas en bloques de 5 segundos para optimizar espacio, pero tú puedes y debes estimar marcas de inicio ('start') y fin ('end') con decimales precisos para que el corte del video sea limpio y profesional, sin cortar palabras del orador.
 
 REGLAS PARA EVITAR REPETICIÓN:
 - Los clips NO pueden solaparse entre sí. Cada clip debe empezar al menos 10 segundos después del final del clip anterior.
