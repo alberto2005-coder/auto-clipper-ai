@@ -179,9 +179,9 @@ Analiza la transcripción con marcas de tiempo y selecciona la MAYOR CANTIDAD PO
 REGLAS OBLIGATORIAS DE DURACIÓN Y COHERENCIA:
 - La duración de cada clip debe definirse ÚNICAMENTE por los límites naturales del STORYTELLING y de la idea o argumento que se está explicando.
 - Cada clip debe ser autocontenido y tener una estructura narrativa coherente: Gancho (Hook/Introducción), Desarrollo del argumento y Desenlace/Resolución del punto. No elijas fragmentos sin sentido o que queden truncados.
-- El clip debe durar exactamente lo necesario para que el orador complete y redondee su idea, con un máximo de 60 segundos. Está ESTRICTAMENTE PROHIBIDO que el clip dure más de 60 segundos o que se corte de golpe a mitad de una frase o pensamiento.
-- La duración ideal debe ser variada y mixta según la naturaleza del momento (por ejemplo, algunos clips de 12s, otros de 25s, otros de 42s, otros de 55s). No los hagas durar siempre los mismos segundos (como siempre 15s o siempre 20s). Varía las duraciones para capturar momentos y diálogos completos de manera orgánica.
-- La duración mínima absoluta es de 10 segundos.
+- El clip debe durar exactamente lo necesario para que el orador complete y redondee su idea de forma fluida, con un mínimo de 30 segundos y un máximo de 95 segundos. Está ESTRICTAMENTE PROHIBIDO que el clip dure menos de 30 segundos (a menos que el video origen sea más corto) o más de 95 segundos, o que se corte de golpe a mitad de una frase o pensamiento.
+- La duración ideal debe ser variada y mixta según la naturaleza del momento (por ejemplo, algunos clips de 35s, otros de 50s, otros de 70s, otros de 90s). Varía las duraciones para capturar momentos y diálogos completos de manera orgánica y redonda.
+- La duración mínima absoluta es de 30 segundos.
 - Las marcas de tiempo de la transcripción comprimida están agrupadas en bloques de 5 segundos para optimizar espacio, pero tú puedes y debes estimar marcas de inicio ('start') y fin ('end') con decimales precisos para que el corte del video sea limpio y profesional, sin cortar palabras del orador.
 
 REGLAS PARA EVITAR REPETICIÓN:
@@ -299,8 +299,8 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             data = [data]
 
         # ── Normalize each clip ───────────────────────────────────────────────
-        MIN_DURATION = 10.0
-        MAX_DURATION = 60.0
+        MIN_DURATION = 30.0
+        MAX_DURATION = 95.0
         normalized_data = []
 
         for item in data:
@@ -333,13 +333,15 @@ Responde ÚNICAMENTE con un JSON array válido (sin texto fuera del JSON):
             if n["start"] > n["end"]:
                 n["start"], n["end"] = n["end"], n["start"]
 
-            # Enforce minimum duration (10s)
+            # Enforce minimum duration (30s)
             clip_dur = n["end"] - n["start"]
             if clip_dur < MIN_DURATION:
                 extra = MIN_DURATION - clip_dur
-                n["start"] = max(0.0, n["start"] - extra / 2)
-                n["end"]   = n["end"] + extra / 2
-            # Enforce maximum duration (60s)
+                new_start = max(0.0, n["start"] - extra / 2)
+                leftover = (extra / 2) - (n["start"] - new_start)
+                n["start"] = new_start
+                n["end"]   = n["end"] + (extra / 2) + leftover
+            # Enforce maximum duration (95s)
             if n["end"] - n["start"] > MAX_DURATION:
                 n["end"] = n["start"] + MAX_DURATION
 
