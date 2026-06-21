@@ -222,6 +222,26 @@ def format_seconds_to_time(seconds):
     return f"{mins:02d}:{secs:02d}.{centis:02d}"
 
 
+def cleanup_temp_uploads():
+    """Removes all temporary uploaded videos except the one currently active."""
+    try:
+        output_dir = get_persistent_output_dir()
+        temp_uploads_dir = os.path.join(output_dir, "temp_uploads")
+        if os.path.exists(temp_uploads_dir):
+            active_temp = st.session_state.get("video_to_process", "")
+            for filename in os.listdir(temp_uploads_dir):
+                if filename.startswith("temp_uploaded_"):
+                    file_path = os.path.join(temp_uploads_dir, filename)
+                    if file_path != active_temp:
+                        try:
+                            os.remove(file_path)
+                        except Exception:
+                            pass
+    except Exception as e:
+        print(f"Error cleaning up temp uploads: {e}")
+
+
+
 def render_virality_badge(score, explanation):
     color = "#FF4B4B" if score < 75 else ("#FF8F00" if score < 90 else "#00C853")
     level = "Bajo"    if score < 75 else ("Bueno"   if score < 90 else "Excelente")
@@ -294,6 +314,9 @@ if "video_analyzed" not in st.session_state: st.session_state.video_analyzed = F
 if "transcription_data" not in st.session_state: st.session_state.transcription_data = None
 if "clips" not in st.session_state: st.session_state.clips = []
 if "video_to_process" not in st.session_state: st.session_state.video_to_process = ""
+
+# Clean up any leftover temporary files from previous runs
+cleanup_temp_uploads()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -501,6 +524,7 @@ with tab_proc:
         st.session_state.clips = []
         st.session_state.transcription_data = None
         st.session_state.video_to_process = ""
+        cleanup_temp_uploads()
         st.rerun()
 
     # ── 1. ACTION: ANALYZE VIDEO ──────────────────────────────────────────────
@@ -706,7 +730,23 @@ with tab_proc:
         video_to_process = st.session_state.video_to_process
         clips = st.session_state.clips
         temp_dir   = os.path.join(tempfile.gettempdir(), f"temp_gui_{uuid.uuid4().hex}")
-        output_dir = get_persistent_output_dir()
+        
+        # Organize files in a video-specific subfolder to prevent file-locking and name collision bugs
+        base_output_dir = get_persistent_output_dir()
+        video_name = "video"
+        if video_to_process:
+            video_name = os.path.splitext(os.path.basename(video_to_process))[0]
+            if video_name.startswith("temp_uploaded_"):
+                if uploaded_file is not None:
+                    video_name = os.path.splitext(uploaded_file.name)[0]
+                else:
+                    video_name = "video"
+        
+        safe_video_name = "".join(c for c in video_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        if not safe_video_name:
+            safe_video_name = "processed_video"
+            
+        output_dir = os.path.join(base_output_dir, safe_video_name)
         os.makedirs(temp_dir,   exist_ok=True)
         os.makedirs(output_dir, exist_ok=True)
 
@@ -773,8 +813,8 @@ with tab_proc:
             progress_bar.progress(100)
             status_area.success("🎉 ¡Todo listo! Clips creados correctamente.")
 
-            # ── Guardar en historial ───────────────────────────────────
-            history = load_history(output_dir)
+            # ── Guardar en historial (using centralized base_output_dir) ──
+            history = load_history(base_output_dir)
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             for idx, clip in enumerate(clips):
                 clip_title = clip.get("hook_title", f"Clip {idx+1}")
@@ -798,7 +838,7 @@ with tab_proc:
                             "created_at":            now_str,
                             "video_format":          video_format,
                         })
-            save_history(output_dir, history)
+            save_history(base_output_dir, history)
 
             # Cache results in session state to avoid re-running on widget interactions
             st.session_state.pipeline_done  = True
@@ -815,12 +855,8 @@ with tab_proc:
         finally:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir, ignore_errors=True)
-            # We don't remove the temp video until process is done
-            if video_to_process and "temp_uploaded_" in video_to_process and os.path.exists(video_to_process):
-                try:
-                    os.remove(video_to_process)
-                except Exception:
-                    pass
+            # DO NOT delete the temp video file here anymore so it remains available for re-rendering or setting edits!
+            # It will be cleared when a new video is uploaded or on startup.
 
     # ── Mostrar resultados cacheados (persisten entre widgets) ─────────────────
     if st.session_state.pipeline_done and st.session_state.pipeline_clips:
