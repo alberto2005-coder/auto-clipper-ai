@@ -482,6 +482,27 @@ with tab_proc:
         status_area  = st.empty()
         progress_bar = st.progress(0)
 
+    # ── Auto-reset pipeline state if a new video file is selected ─────────────
+    if uploaded_file is not None:
+        current_video_key = f"uploaded_{uploaded_file.name}_{uploaded_file.size}"
+    elif local_path:
+        current_video_key = f"local_{local_path}"
+    else:
+        current_video_key = ""
+
+    if "last_video_key" not in st.session_state:
+        st.session_state.last_video_key = current_video_key
+
+    if st.session_state.last_video_key != current_video_key:
+        st.session_state.last_video_key = current_video_key
+        st.session_state.pipeline_done  = False
+        st.session_state.pipeline_clips = []
+        st.session_state.video_analyzed = False
+        st.session_state.clips = []
+        st.session_state.transcription_data = None
+        st.session_state.video_to_process = ""
+        st.rerun()
+
     # ── 1. ACTION: ANALYZE VIDEO ──────────────────────────────────────────────
     if analyze_btn:
         # Reset state so previous results don't linger
