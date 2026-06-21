@@ -38,6 +38,11 @@ echo [3/3] Compilando la aplicacion en .exe...
 echo       Esto puede tardar varios minutos, por favor espera...
 echo.
 
+echo [*] Limpiando residuos de compilaciones anteriores (build / dist)...
+if exist "build" rmdir /s /q "build"
+if exist "dist" rmdir /s /q "dist"
+echo.
+
 pyinstaller --noconfirm --clean --onedir --console ^
     --icon=logo.ico ^
     --log-level WARN ^
