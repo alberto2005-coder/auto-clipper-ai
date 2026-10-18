@@ -17,8 +17,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/alberto2005-coder/auto-clipper-ai",
-    packages=find_packages(),
-    py_modules=["main", "transcriber", "analyzer", "subtitle_generator", "video_editor", "gui", "run_gui"],
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
+    py_modules=["main", "gui", "run_gui"],
     install_requires=requirements,
     entry_points={
         "console_scripts": [

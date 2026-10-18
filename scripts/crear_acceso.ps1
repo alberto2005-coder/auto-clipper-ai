@@ -4,7 +4,10 @@ $lnk = Join-Path $escritorio "Auto-Clipper AI.lnk"
 $s = $ws.CreateShortcut($lnk)
 $s.TargetPath = $args[0]
 $s.WorkingDirectory = $args[1]
-$ico = Join-Path $args[1] "logo.ico"
+$ico = Join-Path $args[1] "assets\logo.ico"
+if (-not (Test-Path $ico)) {
+    $ico = Join-Path $args[1] "logo.ico"
+}
 if (Test-Path $ico) {
     $s.IconLocation = "$ico,0"
 } else {

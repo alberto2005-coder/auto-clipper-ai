@@ -10,14 +10,12 @@ datas = [
     (streamlit_path, './streamlit'),
     ('gui.py', '.'),
     ('main.py', '.'),
-    ('transcriber.py', '.'),
-    ('analyzer.py', '.'),
-    ('subtitle_generator.py', '.'),
-    ('video_editor.py', '.'),
+    ('src', './src'),
 ]
 
-if os.path.exists('logo.ico'):
-    datas.append(('logo.ico', '.'))
+icon_path = 'assets/logo.ico' if os.path.exists('assets/logo.ico') else 'logo.ico'
+if os.path.exists(icon_path):
+    datas.append((icon_path, './assets' if 'assets' in icon_path else '.'))
 
 binaries = []
 hiddenimports = []
@@ -30,7 +28,7 @@ for package_name in ['streamlit', 'imageio_ffmpeg', 'faster_whisper', 'ctranslat
 
 a = Analysis(
     ['run_gui.py'],
-    pathex=[],
+    pathex=['src'],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
@@ -59,7 +57,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['logo.ico'],
+    icon=[icon_path] if os.path.exists(icon_path) else None,
 )
 
 coll = COLLECT(

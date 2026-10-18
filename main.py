@@ -1,11 +1,20 @@
 import os
+import sys
 import argparse
 import json
 import shutil
-from transcriber import extract_audio, transcribe_audio
-from analyzer import analyze_audio_energy, select_best_moments_with_llm
-from subtitle_generator import generate_ass_subtitles
-from video_editor import process_video_clip, is_portrait_video
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
+
+from autoclipper import (
+    extract_audio,
+    transcribe_audio,
+    analyze_audio_energy,
+    select_best_moments_with_llm,
+    generate_ass_subtitles,
+    process_video_clip,
+    is_portrait_video,
+)
 
 def main():
     parser = argparse.ArgumentParser(description="Auto-Clipper AI: Transforma videos largos a Shorts/TikToks de forma ligera.")

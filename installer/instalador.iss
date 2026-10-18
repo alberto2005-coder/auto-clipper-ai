@@ -1,5 +1,5 @@
 ; Script de Inno Setup 7 para Auto-Clipper AI
-; Requiere haber generado previamente el ejecutable con crear_exe.bat (carpeta dist\run_gui)
+; Requiere haber generado previamente el ejecutable con scripts\crear_exe.bat (carpeta dist\run_gui)
 
 #define MyAppName "Auto-Clipper AI"
 #define MyAppVersion "1.0.0"
@@ -18,9 +18,9 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-OutputDir=dist
+OutputDir=..\dist
 OutputBaseFilename=Instalador_AutoClipperAI
-SetupIconFile=logo.ico
+SetupIconFile=..\assets\logo.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -48,9 +48,9 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Archivos generados por PyInstaller en dist\run_gui
-Source: "dist\run_gui\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\run_gui\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Icono de la aplicacion
-Source: "logo.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\logo.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\logo.ico"

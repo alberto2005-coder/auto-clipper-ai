@@ -37,6 +37,10 @@ def main():
         print(f"[*] Directory: {bundle_dir}")
 
     gui_path = os.path.join(bundle_dir, "gui.py")
+    src_dir = os.path.join(bundle_dir, "src")
+    if os.path.exists(src_dir) and src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
+
     print(f"[*] Target UI script path: {gui_path}")
     if not os.path.exists(gui_path):
         print(f"[FATAL] Target UI script 'gui.py' not found at expected path!")

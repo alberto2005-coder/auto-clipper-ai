@@ -137,20 +137,21 @@ python main.py podcast.mp4 --output_dir clips --provider groq --api_key TU_GROQ_
 Este repositorio incluye todo lo necesario para compilar y empaquetar la aplicación como un programa de Windows:
 
 ### Paso 1: Generar el Ejecutable (`.exe`)
-Ejecuta el script de compilación:
+Ejecuta el script de compilación (desde la terminal o con doble clic):
 ```cmd
-crear_exe.bat
+scripts\crear_exe.bat
 ```
-- Utiliza **PyInstaller** con una configuración optimizada y portable ([run_gui.spec](run_gui.spec)).
+- Utiliza **PyInstaller** con una configuración optimizada y portable ([scripts/run_gui.spec](scripts/run_gui.spec)).
+- Empaqueta el paquete modular `src/autoclipper` y los recursos de `assets/`.
 - Genera la carpeta distribuible con todas las librerías en `dist\run_gui\`.
 
 ### Paso 2: Crear el Instalador con Inno Setup 7
-1. Abre [instalador.iss](instalador.iss) en **Inno Setup 7**.
+1. Abre [installer/instalador.iss](installer/instalador.iss) en **Inno Setup 7**.
 2. Haz clic en **Compile** (`Ctrl + F9`).
 3. Se generará el instalador `dist\Instalador_AutoClipperAI.exe` con:
    - Asistente moderno y redimensionable (`WizardStyle=modern`).
    - Soporte para arquitecturas de 64 bits (`x64compatible`).
-   - Acceso directo en el Escritorio y Menú Inicio con icono oficial (`logo.ico`).
+   - Acceso directo en el Escritorio y Menú Inicio con icono oficial ([assets/logo.ico](assets/logo.ico)).
    - Soporte multilingüe (Español e Inglés).
    - Desinstalador integrado.
 
@@ -161,24 +162,34 @@ crear_exe.bat
 ```text
 auto-clipper-ai/
 ├── .streamlit/             # Configuración del servidor y temas de Streamlit
+├── assets/                 # Recursos gráficos (iconos, logos)
+│   └── logo.ico
+├── installer/              # Archivos de empaquetado para distribución
+│   └── instalador.iss      # Script del instalador para Inno Setup 7
+├── scripts/                # Scripts de automatización y compilación
+│   ├── crear_acceso.ps1    # Generador de acceso directo en escritorio
+│   ├── crear_exe.bat       # Compilador a ejecutable portable
+│   └── run_gui.spec        # Especificación de empaquetado PyInstaller
+├── src/                    # Código fuente del paquete principal
+│   └── autoclipper/
+│       ├── __init__.py     # Exportaciones principales del paquete
+│       ├── analyzer.py     # Lógica de análisis de transcripción y LLMs
+│       ├── subtitle_generator.py # Generación de subtítulos dinámicos ASS
+│       ├── transcriber.py  # Extracción de audio y Whisper STT
+│       └── video_editor.py # Edición, reencuadre vertical 9:16 y mezcla
 ├── tests/                  # Pruebas unitarias y de integración
+│   ├── __init__.py
 │   └── test_analyzer_retry.py
-├── analyzer.py             # Lógica de análisis de transcripción y LLM
-├── crear_acceso.ps1        # Script PowerShell para crear acceso directo
-├── crear_exe.bat           # Compilador a binario con PyInstaller
-├── ejecutar.bat            # Lanzador rápido con detección de .venv
+├── .gitignore              # Reglas de exclusión para Git
+├── ejecutar.bat            # Lanzador rápido raíz en 1 clic
 ├── gui.py                  # Interfaz gráfica interactiva (Streamlit)
-├── instalador.iss          # Script de instalador para Inno Setup 7
-├── logo.ico                # Icono de la aplicación
+├── LICENSE                 # Licencia personalizada (No Comercial / Atribución)
 ├── main.py                 # Punto de entrada para el modo CLI
 ├── packages.txt            # Dependencias del sistema (Streamlit Cloud / Debian)
+├── README.md               # Documentación oficial del proyecto
 ├── requirements.txt        # Dependencias de Python
-├── run_gui.py              # Bootstrap para el ejecutable de la GUI
-├── run_gui.spec            # Especificación portable de PyInstaller
-├── setup.py                # Instalación como paquete de Python
-├── subtitle_generator.py   # Creación de subtítulos dinámicos ASS
-├── transcriber.py          # Extracción de audio y Whisper STT
-└── video_editor.py         # Edición y reencuadre vertical 9:16 con FFmpeg
+├── run_gui.py              # Bootstrap del ejecutable compilado
+└── setup.py                # Instalación como paquete de Python (src-layout)
 ```
 
 ---

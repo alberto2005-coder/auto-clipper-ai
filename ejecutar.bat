@@ -38,7 +38,7 @@ if not exist "%ACCESO%" (
     echo.
     set /p crear="¿Deseas crear un acceso directo en el escritorio? (s/n): "
     if /i "!crear!"=="s" (
-        powershell -ExecutionPolicy Bypass -File "%~dp0crear_acceso.ps1" "%~f0" "%~dp0"
+        powershell -ExecutionPolicy Bypass -File "%~dp0scripts\crear_acceso.ps1" "%~f0" "%~dp0"
     )
 )
 

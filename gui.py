@@ -1,12 +1,27 @@
 import os
+import sys
 import streamlit as st
 import shutil
 import tempfile
 import uuid
-from transcriber import extract_audio, transcribe_audio
-from analyzer import select_best_moments_with_llm
-from subtitle_generator import generate_ass_subtitles, SUBTITLE_STYLES, AVAILABLE_FONTS
-from video_editor import process_video_clip, compute_title_info, TITLE_STYLES, TITLE_FONTS, mix_background_music, is_portrait_video
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
+
+from autoclipper import (
+    extract_audio,
+    transcribe_audio,
+    transcribe_audio_cloud,
+    select_best_moments_with_llm,
+    generate_ass_subtitles,
+    SUBTITLE_STYLES,
+    AVAILABLE_FONTS,
+    process_video_clip,
+    compute_title_info,
+    TITLE_STYLES,
+    TITLE_FONTS,
+    mix_background_music,
+    is_portrait_video,
+)
 import json
 import datetime
 
@@ -583,7 +598,7 @@ with tab_proc:
                 if use_cloud_transcription and provider in ["groq", "openai"] and api_key:
                     status_area.write(f"⏳ Paso 2/3: Transcribiendo en la nube con {provider}...")
                     progress_bar.progress(40)
-                    from transcriber import transcribe_audio_cloud
+                    from autoclipper import transcribe_audio_cloud
                     trans_api_url = None
                     if provider == "openai" and api_url and "completions" not in api_url:
                         trans_api_url = api_url
