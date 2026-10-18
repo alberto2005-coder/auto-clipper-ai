@@ -12,7 +12,7 @@ except FileNotFoundError:
 setup(
     name="autoclipper",
     version="1.0.0",
-    author="Alberto",
+    author="Alberto Ortiz",
     description="Herramienta inteligente para automatizar la extraccion de clips para TikTok y Shorts usando IA.",
     long_description=long_description,
     long_description_content_type="text/markdown",
