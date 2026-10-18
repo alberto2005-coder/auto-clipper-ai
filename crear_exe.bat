@@ -1,85 +1,69 @@
 @echo off
 chcp 65001 >nul
 echo =====================================================
-echo  Auto-Clipper AI - Compilador de .exe
+echo  Auto-Clipper AI - Compilador de Ejecutable (.exe)
 echo =====================================================
+echo.
 
-REM -- Verificar logo.ico
+REM -- Verificar presencia de icono
 if not exist "logo.ico" (
-    echo [ERROR] No se encontro logo.ico en esta carpeta.
-    echo         Coloca logo.ico junto a este .bat e intentalo de nuevo.
+    echo [ERROR] No se encontro logo.ico en la carpeta del proyecto.
+    echo         Asegurate de que logo.ico exista antes de compilar.
     pause & exit /b 1
 )
 
-REM -- Instalar PyInstaller
+REM -- Activar entorno virtual preferente
+if exist ".venv\Scripts\activate.bat" (
+    echo [*] Activando entorno virtual (.venv)...
+    call ".venv\Scripts\activate.bat"
+) else if exist "venv\Scripts\activate.bat" (
+    echo [*] Activando entorno virtual (venv)...
+    call "venv\Scripts\activate.bat"
+)
+
+REM -- Verificar e instalar PyInstaller en el entorno
 echo.
-echo [1/3] Instalando PyInstaller...
-pip install -q pyinstaller
+echo [1/3] Verificando PyInstaller...
+python -m pip install -q pyinstaller
 if errorlevel 1 (
-    echo [ERROR] No se pudo instalar PyInstaller.
+    echo [ERROR] No se pudo instalar o encontrar PyInstaller.
     pause & exit /b 1
 )
 
-REM -- Buscar ruta de Streamlit
+REM -- Limpiar carpetas temporales anteriores
 echo.
-echo [2/3] Buscando la ruta de Streamlit...
-FOR /F "tokens=*" %%g IN ('python -c "import streamlit, os; print(os.path.dirname(streamlit.__file__))"') do (SET STREAMLIT_PATH=%%g)
-
-if not defined STREAMLIT_PATH (
-    echo [ERROR] No se pudo encontrar Streamlit. Asegurate de tenerlo instalado:
-    echo         pip install streamlit
-    pause & exit /b 1
-)
-echo        Streamlit encontrado en: %STREAMLIT_PATH%
-
-REM -- Compilar con PyInstaller
-echo.
-echo [3/3] Compilando la aplicacion en .exe...
-echo       Esto puede tardar varios minutos, por favor espera...
-echo.
-
-echo [*] Limpiando residuos de compilaciones anteriores (build / dist)...
+echo [2/3] Limpiando carpetas de compilaciones anteriores (build / dist)...
 if exist "build" rmdir /s /q "build"
-if exist "dist" rmdir /s /q "dist"
+if exist "dist\run_gui" rmdir /s /q "dist\run_gui"
+
+REM -- Compilar utilizando el archivo run_gui.spec portable
+echo.
+echo [3/3] Compilando la aplicacion con PyInstaller (run_gui.spec)...
+echo       Esto puede tardar varios minutos dependiendo de tu CPU...
 echo.
 
-pyinstaller --noconfirm --clean --onedir --console ^
-    --icon=logo.ico ^
-    --log-level WARN ^
-    --collect-all streamlit ^
-    --collect-all imageio_ffmpeg ^
-    --collect-all faster_whisper ^
-    --collect-all ctranslate2 ^
-    --collect-all librosa ^
-    --collect-all cv2 ^
-    --add-data "%STREAMLIT_PATH%;./streamlit" ^
-    --add-data "gui.py;." ^
-    --add-data "main.py;." ^
-    --add-data "transcriber.py;." ^
-    --add-data "analyzer.py;." ^
-    --add-data "subtitle_generator.py;." ^
-    --add-data "video_editor.py;." ^
-    run_gui.py
+pyinstaller --noconfirm --clean run_gui.spec
 
 if errorlevel 1 (
     echo.
     echo [ERROR] PyInstaller fallo durante la compilacion.
-    echo         Revisa los mensajes de error de arriba.
+    echo         Revisa los mensajes de error mostrados arriba.
     pause & exit /b 1
 )
 
-REM -- Verificar que se genero el exe
+REM -- Verificar que el ejecutable existe
 if not exist "dist\run_gui\run_gui.exe" (
     echo.
-    echo [ERROR] La compilacion termino pero no se encontro dist\run_gui\run_gui.exe.
+    echo [ERROR] La compilacion finalizo pero no se genero dist\run_gui\run_gui.exe.
     pause & exit /b 1
 )
 
 echo.
 echo =======================================================
-echo  Compilacion completada con exito.
-echo  Tu programa esta en la carpeta "dist\run_gui".
-echo  Ahora puedes compilar el instalador con instalador.iss
-echo  usando Inno Setup.
+echo  [OK] Compilacion completada con exito.
+echo  Los archivos generados estan en: "dist\run_gui"
+echo.
+echo  Siguiente paso:
+echo  Puedes compilar el instalador instalador.iss con Inno Setup.
 echo =======================================================
 pause

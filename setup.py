@@ -1,15 +1,24 @@
 from setuptools import setup, find_packages
 
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
+with open("requirements.txt", encoding="utf-8") as f:
+    requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+try:
+    with open("README.md", encoding="utf-8") as f:
+        long_description = f.read()
+except FileNotFoundError:
+    long_description = ""
 
 setup(
     name="autoclipper",
-    version="0.1.0",
-    author="Antigravity",
-    description="Herramienta ligera de IA para automatizar clips de YouTube Shorts y TikTok.",
+    version="1.0.0",
+    author="Alberto",
+    description="Herramienta inteligente para automatizar la extraccion de clips para TikTok y Shorts usando IA.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/alberto2005-coder/auto-clipper-ai",
     packages=find_packages(),
-    py_modules=["main", "transcriber", "analyzer", "subtitle_generator", "video_editor"],
+    py_modules=["main", "transcriber", "analyzer", "subtitle_generator", "video_editor", "gui", "run_gui"],
     install_requires=requirements,
     entry_points={
         "console_scripts": [
@@ -17,4 +26,9 @@ setup(
         ],
     },
     python_requires=">=3.8",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: Other/Proprietary License",
+        "Operating System :: OS Independent",
+    ],
 )

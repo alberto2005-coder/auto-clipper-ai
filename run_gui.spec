@@ -1,22 +1,32 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+import streamlit
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('C:\\Users\\alors\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\streamlit', './streamlit'), ('gui.py', '.'), ('main.py', '.'), ('transcriber.py', '.'), ('analyzer.py', '.'), ('subtitle_generator.py', '.'), ('video_editor.py', '.')]
+# Obtener dinamicamente la ruta de streamlit segun el entorno de ejecucion
+streamlit_path = os.path.dirname(streamlit.__file__)
+
+datas = [
+    (streamlit_path, './streamlit'),
+    ('gui.py', '.'),
+    ('main.py', '.'),
+    ('transcriber.py', '.'),
+    ('analyzer.py', '.'),
+    ('subtitle_generator.py', '.'),
+    ('video_editor.py', '.'),
+]
+
+if os.path.exists('logo.ico'):
+    datas.append(('logo.ico', '.'))
+
 binaries = []
 hiddenimports = []
-tmp_ret = collect_all('streamlit')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('imageio_ffmpeg')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('faster_whisper')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('ctranslate2')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('librosa')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('cv2')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
+for package_name in ['streamlit', 'imageio_ffmpeg', 'faster_whisper', 'ctranslate2', 'librosa', 'cv2']:
+    tmp_ret = collect_all(package_name)
+    datas += tmp_ret[0]
+    binaries += tmp_ret[1]
+    hiddenimports += tmp_ret[2]
 
 a = Analysis(
     ['run_gui.py'],
@@ -51,6 +61,7 @@ exe = EXE(
     entitlements_file=None,
     icon=['logo.ico'],
 )
+
 coll = COLLECT(
     exe,
     a.binaries,

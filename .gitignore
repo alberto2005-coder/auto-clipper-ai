@@ -1,13 +1,54 @@
-/__pycache__
-/autoclipper.egg-info
-/build
-/dist
-/temp_gui_processing
-/temp_uploaded_video.mp4
-/venv
-/.venv
-/output_clips_gui
-*.exe
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Environment variables & local secrets
+.env
+.env.local
+.env.*.local
+
+# IDEs & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Auto-Clipper temporary and output files
+temp_gui_processing/
+temp_uploaded_video.mp4
+output_clips_gui/
+clips_salida/
+output_clips/
+fonts/
+*.log
+
+# PyInstaller & Installers
 *.spec
 !run_gui.spec
-/fonts
+*.exe

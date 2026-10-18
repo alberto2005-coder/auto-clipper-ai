@@ -1,4 +1,8 @@
+import sys
+import os
 import requests
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from analyzer import select_best_moments_with_llm
 
 # Simula requests.post: primer llamado lanza HTTPError 413, segundo retorna JSON válido
