@@ -3,7 +3,7 @@
 
 #define MyAppName "Auto-Clipper AI"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "Alberto"
+#define MyAppPublisher "Alberto Ortiz"
 #define MyAppURL "https://github.com/alberto2005-coder/auto-clipper-ai"
 #define MyAppExeName "run_gui.exe"
 
