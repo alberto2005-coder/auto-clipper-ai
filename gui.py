@@ -1038,7 +1038,7 @@ with tab_edit:
                 output_trim_path = os.path.join(output_dir_edit, f"{new_clip_name}.mp4")
 
                 try:
-                    from video_editor import get_ffmpeg_path
+                    from autoclipper import get_ffmpeg_path
                     import subprocess
                     ffmpeg_bin = get_ffmpeg_path()
 

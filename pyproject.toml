@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoclipper"
+version = "1.0.0"
+description = "Herramienta inteligente para automatizar la extracción de clips para TikTok y Shorts usando IA."
+authors = [{ name = "Alberto" }]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "faster-whisper",
+    "librosa",
+    "requests",
+    "numpy",
+    "soundfile",
+    "imageio-ffmpeg",
+    "streamlit",
+    "opencv-python",
+]
+
+[tool.pyright]
+extraPaths = ["src"]
+include = ["."]

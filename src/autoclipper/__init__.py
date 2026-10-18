@@ -12,6 +12,7 @@ from .video_editor import (
     TITLE_FONTS,
     mix_background_music,
     is_portrait_video,
+    get_ffmpeg_path,
 )
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "TITLE_FONTS",
     "mix_background_music",
     "is_portrait_video",
+    "get_ffmpeg_path",
 ]

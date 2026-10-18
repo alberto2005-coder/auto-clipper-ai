@@ -1,0 +1,16 @@
+{
+  "include": [
+    "."
+  ],
+  "extraPaths": [
+    "src"
+  ],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "src"
+      ]
+    }
+  ]
+}
