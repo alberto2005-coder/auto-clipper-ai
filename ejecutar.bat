@@ -3,17 +3,23 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 chcp 65001 >nul
 
-echo Comprobando Python...
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo Python no encontrado. Abriendo python.org...
-    start https://www.python.org/downloads/
-    pause
-    exit
-)
+if exist ".venv\Scripts\activate.bat" (
+    call ".venv\Scripts\activate.bat"
+) else if exist "venv\Scripts\activate.bat" (
+    call "venv\Scripts\activate.bat"
+) else (
+    echo Comprobando Python...
+    python --version >nul 2>&1
+    if errorlevel 1 (
+        echo Python no encontrado. Abriendo python.org...
+        start https://www.python.org/downloads/
+        pause
+        exit
+    )
 
-echo Instalando/verificando dependencias...
-pip install -q -r requirements.txt
+    echo Instalando/verificando dependencias...
+    pip install -q -r requirements.txt
+)
 
 echo.
 set "ESCRITORIO="
