@@ -24,7 +24,6 @@ SetupIconFile=..\assets\logo.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-WizardResizable=yes
 
 ; Requisitos de sistema: Windows 10+ 64-bit (Compatible con Inno Setup 7)
 MinVersion=10.0
