@@ -3,22 +3,46 @@ import os
 import streamlit
 from PyInstaller.utils.hooks import collect_all
 
+# Determinar rutas absolutas basandose en la ubicacion del spec
+spec_dir = os.path.dirname(os.path.abspath(SPEC)) if 'SPEC' in globals() else os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(spec_dir, "..")) if os.path.basename(spec_dir).lower() == 'scripts' else spec_dir
+
 # Obtener dinamicamente la ruta de streamlit segun el entorno de ejecucion
 streamlit_path = os.path.dirname(streamlit.__file__)
 
+run_gui_script = os.path.join(project_root, 'run_gui.py')
+gui_script = os.path.join(project_root, 'gui.py')
+main_script = os.path.join(project_root, 'main.py')
+src_dir = os.path.join(project_root, 'src')
+assets_dir = os.path.join(project_root, 'assets')
+icon_path = os.path.join(assets_dir, 'logo.ico')
+
 datas = [
     (streamlit_path, './streamlit'),
-    ('gui.py', '.'),
-    ('main.py', '.'),
-    ('src', './src'),
+    (gui_script, '.'),
+    (main_script, '.'),
+    (src_dir, './src'),
+    (os.path.join(src_dir, 'autoclipper'), './autoclipper'),
 ]
 
-icon_path = 'assets/logo.ico' if os.path.exists('assets/logo.ico') else 'logo.ico'
+if os.path.exists(assets_dir):
+    datas.append((assets_dir, './assets'))
+
 if os.path.exists(icon_path):
-    datas.append((icon_path, './assets' if 'assets' in icon_path else '.'))
+    datas.append((icon_path, '.'))
 
 binaries = []
-hiddenimports = []
+hiddenimports = [
+    'autoclipper',
+    'autoclipper.analyzer',
+    'autoclipper.subtitle_generator',
+    'autoclipper.transcriber',
+    'autoclipper.video_editor',
+    'soundfile',
+    'scipy',
+    'tqdm',
+    'requests',
+]
 
 for package_name in ['streamlit', 'imageio_ffmpeg', 'faster_whisper', 'ctranslate2', 'librosa', 'cv2']:
     tmp_ret = collect_all(package_name)
@@ -27,8 +51,8 @@ for package_name in ['streamlit', 'imageio_ffmpeg', 'faster_whisper', 'ctranslat
     hiddenimports += tmp_ret[2]
 
 a = Analysis(
-    ['run_gui.py'],
-    pathex=['src'],
+    [run_gui_script],
+    pathex=[src_dir, project_root],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
