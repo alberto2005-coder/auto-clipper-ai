@@ -9,7 +9,7 @@
 [![Faster-Whisper](https://img.shields.io/badge/Faster--Whisper-STT-412991?style=for-the-badge&logo=openai&logoColor=white)](https://github.com/SYSTRAN/faster-whisper)
 [![uv](https://img.shields.io/badge/managed%20by-uv-DE5FE9?style=for-the-badge&logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
 [![Inno Setup](https://img.shields.io/badge/Inno%20Setup-7-0078D7?style=for-the-badge&logo=windows&logoColor=white)](https://jrsoftware.org/isinfo.php)
-[![License](https://img.shields.io/badge/License-Custom%20NC--Attribution-orange.svg?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=for-the-badge)](LICENSE)
 
 </div>
 
@@ -183,7 +183,7 @@ auto-clipper-ai/
 ├── .gitignore              # Reglas de exclusión para Git
 ├── ejecutar.bat            # Lanzador rápido raíz en 1 clic
 ├── gui.py                  # Interfaz gráfica interactiva (Streamlit)
-├── LICENSE                 # Licencia personalizada (No Comercial / Atribución)
+├── LICENSE                 # Licencia GPL-3.0
 ├── main.py                 # Punto de entrada para el modo CLI
 ├── packages.txt            # Dependencias del sistema (Streamlit Cloud / Debian)
 ├── README.md               # Documentación oficial del proyecto
@@ -206,9 +206,234 @@ python tests/test_analyzer_retry.py
 
 ## 📄 Licencia
 
-Este proyecto está bajo una **Licencia Personalizada (Uso No Comercial y con Atribución Obligatoria)**:
-- ✅ **Uso permitido**: Gratuito para uso personal, educativo, pruebas y desarrollo no comercial.
-- ❌ **Prohibida su venta**: Queda terminantemente prohibido vender, revender, alquilar o monetizar este software o cualquier derivado.
-- 👤 **Atribución obligatoria**: Cualquier copia, fork o trabajo derivado debe mantener visible y destacada la autoría de **Alberto** y el enlace al repositorio original.
+Este proyecto está bajo la **Licencia GPL-3.0**:
+- ✅ **Uso permitido**: Gratuito para uso personal, educativo, pruebas, desarrollo y también comercial.
+- 🔁 **Forks y modificaciones**: Permitidos; si distribuyes versiones modificadas, publica su código fuente bajo GPL-3.0 (copyleft).
+- 👤 **Atribución**: Conserva el crédito a **Alberto** y el enlace al repositorio original.
 
 Consulta el archivo [LICENSE](LICENSE) para consultar los términos completos.
+
+
+# 🎬 Auto-Clipper AI
+
+**Turn long videos into viral vertical clips (TikTok, YouTube Shorts, Instagram Reels) using Artificial Intelligence.**
+
+---
+
+## 🌟 Key Features
+
+* 🎙️ **Smart Transcription**: Fast local transcription powered by `faster-whisper` (supports GPU/CUDA or CPU) or via Cloud APIs (Groq / OpenAI Whisper).
+* 🧠 **Viral Moment Detection**: Semantic analysis using LLMs to pinpoint high-hook moments, complete with explanations and virality scores.
+* 💬 **Dynamic ASS Subtitles**: Automated TikTok/Shorts-style word-by-word synced subtitles with highlighted fonts.
+* 📱 **9:16 Vertical Reframing**: Automatic conversion from horizontal to vertical format, ready for social media.
+* 💻 **Dual Mode Support**: Intuitive **Streamlit** web dashboard and automated **Command Line Interface (CLI)**.
+* 📦 **Windows Distribution Ready**: Preconfigured scripts to compile to `.exe` (PyInstaller) and generate professional installers with **Inno Setup 7**.
+
+---
+
+## 🚀 Prerequisites
+
+* **Python**: Version 3.8 or higher (3.10 – 3.13 recommended).
+* **FFmpeg**: Handled automatically via `imageio-ffmpeg` (included in `requirements.txt`). Alternatively, you can have `ffmpeg` installed in your system's `PATH`.
+* **uv** *(Optional but highly recommended)*: Ultra-fast Python package and environment manager.
+
+---
+
+## 📥 Installation
+
+### Option 1: Using `uv` (Recommended - Ultra-fast)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/alberto2005-coder/auto-clipper-ai.git
+cd auto-clipper-ai
+
+# 2. Create the virtual environment
+uv venv
+
+# 3. Install dependencies
+uv pip install -r requirements.txt
+
+```
+
+### Option 2: Using standard `pip`
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/alberto2005-coder/auto-clipper-ai.git
+cd auto-clipper-ai
+
+# 2. Create a virtual environment
+python -m venv .venv
+
+# 3. Activate the environment
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# On Linux/macOS:
+source .venv/bin/activate
+
+# 4. Install dependencies
+pip install -r requirements.txt
+
+```
+
+---
+
+## 🖥️ Usage
+
+### 1. Graphical User Interface (Streamlit)
+
+The easiest way on Windows is to double-click **`ejecutar.bat`**. This script:
+
+1. Automatically detects and activates the virtual environment (`.venv`).
+2. Checks for required dependencies.
+3. Offers to create a desktop shortcut with the official app icon.
+4. Launches the visual dashboard in your browser (`http://localhost:8501`).
+
+If you prefer launching from the terminal:
+
+```bash
+# With the virtual environment activated:
+streamlit run gui.py
+
+```
+
+#### Dashboard Features:
+
+* Upload local video files or specify paths on disk.
+* Select Whisper model sizes (`tiny`, `base`, `small`, `medium`, `large-v3`).
+* Choose LLM providers (Local Ollama, Groq, or OpenAI).
+* Preview cut segments and download final 9:16 vertical clips.
+
+---
+
+### 2. Command Line Interface (CLI)
+
+Ideal for batch processing or pipeline scripting:
+
+```bash
+python main.py path/to/video.mp4 --output_dir output_clips
+
+```
+
+#### Available Parameters:
+
+| Parameter | Description | Default Value |
+| --- | --- | --- |
+| `video_path` | Path to the source input video | *(Required)* |
+| `--output_dir` | Directory where output clips are saved | `output_clips` |
+| `--model` | Whisper model size (`tiny`, `base`, `small`, `medium`) | `small` |
+| `--lang` | ISO language code of the video | `es` |
+| `--provider` | LLM provider (`ollama`, `groq`, `openai`) | `ollama` |
+| `--api_url` | LLM provider API endpoint URL | `http://localhost:11434/api/generate` |
+| `--api_key` | API Key (for Groq or OpenAI) | `None` / Environment Var |
+| `--llm_model` | LLM model name to query | `llama3` / `llama-3.3-70b-versatile` |
+
+#### CLI Examples:
+
+**Using Ollama (100% Local and Free):**
+
+```bash
+python main.py podcast.mp4 --output_dir clips --provider ollama --llm_model llama3
+
+```
+
+**Using Groq (Ultra-fast Cloud Inference):**
+
+```bash
+python main.py podcast.mp4 --output_dir clips --provider groq --api_key YOUR_GROQ_API_KEY
+
+```
+
+---
+
+## 🏗️ Building Executable & Installer (Windows)
+
+This repository includes everything required to package the app into a standalone Windows application:
+
+### Step 1: Build the Executable (`.exe`)
+
+Run the build script (via terminal or double-click):
+
+```cmd
+scripts\crear_exe.bat
+
+```
+
+* Uses **PyInstaller** with an optimized, portable configuration ([scripts/run_gui.spec](https://www.google.com/search?q=scripts/run_gui.spec)).
+* Packages the `src/autoclipper` modular package and resources from `assets/`.
+* Generates the standalone distribution folder containing all libraries at `dist\run_gui\`.
+
+### Step 2: Create the Installer with Inno Setup 7
+
+1. Open [installer/instalador.iss](https://www.google.com/search?q=installer/instalador.iss) in **Inno Setup 7**.
+2. Click **Compile** (`Ctrl + F9`).
+3. An installer executable `dist\Instalador_AutoClipperAI.exe` will be produced with:
+* Modern, resizable UI wizard (`WizardStyle=modern`).
+* 64-bit architecture support (`x64compatible`).
+* Desktop and Start Menu shortcuts using the official icon ([assets/logo.ico](https://www.google.com/search?q=assets/logo.ico)).
+* Multi-language support (Spanish and English).
+* Built-in uninstaller.
+
+
+
+---
+
+## 📂 Repository Structure
+
+```text
+auto-clipper-ai/
+├── .streamlit/             # Streamlit server and theme configuration
+├── assets/                 # Graphical assets (icons, logos)
+│   └── logo.ico
+├── installer/              # Distribution packaging files
+│   └── instalador.iss      # Inno Setup 7 installer script
+├── scripts/                # Automation and build scripts
+│   ├── crear_acceso.ps1    # Desktop shortcut generator
+│   ├── crear_exe.bat       # Portable executable compiler
+│   └── run_gui.spec        # PyInstaller specification file
+├── src/                    # Main package source code
+│   └── autoclipper/
+│       ├── __init__.py     # Core package exports
+│       ├── analyzer.py     # Transcript analysis and LLM logic
+│       ├── subtitle_generator.py # Dynamic ASS subtitle generator
+│       ├── transcriber.py  # Audio extraction and Whisper STT
+│       └── video_editor.py # Editing, 9:16 vertical reframing, and mixing
+├── tests/                  # Unit and integration tests
+│   ├── __init__.py
+│   └── test_analyzer_retry.py
+├── .gitignore              # Git ignore rules
+├── ejecutar.bat            # One-click root launcher
+├── gui.py                  # Interactive graphical dashboard (Streamlit)
+├── LICENSE                 # GPL-3.0 License
+├── main.py                 # CLI entry point
+├── packages.txt            # System dependencies (Streamlit Cloud / Debian)
+├── README.md               # Official project documentation
+├── requirements.txt        # Python dependencies
+├── run_gui.py              # Compiled executable bootstrap
+└── setup.py                # Python package setup (src-layout)
+
+```
+
+---
+
+## 🧪 Testing
+
+To run tests for the analysis engine and LLM fallback/retry mechanisms:
+
+```bash
+python tests/test_analyzer_retry.py
+
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the **GPL-3.0 License**:
+
+* ✅ **Permitted use**: Free for personal use, educational purposes, testing, development, and commercial use.
+* 🔁 **Forks and modifications**: Allowed; modified distributions must be open-sourced under the GPL-3.0 copyleft terms.
+* 👤 **Attribution**: Retain proper credit to **Alberto** and the link to the original repository.
+
+Refer to the [LICENSE](https://www.google.com/search?q=LICENSE) file for full terms and conditions.
