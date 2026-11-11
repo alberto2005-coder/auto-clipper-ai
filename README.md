@@ -1,439 +1,355 @@
-<div align="center">
-
 # 🎬 Auto-Clipper AI
 
-**Transforma videos largos en clips verticales virales (TikTok, YouTube Shorts, Instagram Reels) usando Inteligencia Artificial.**
-
-[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.66-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Faster-Whisper](https://img.shields.io/badge/Faster--Whisper-STT-412991?style=for-the-badge&logo=openai&logoColor=white)](https://github.com/SYSTRAN/faster-whisper)
-[![uv](https://img.shields.io/badge/managed%20by-uv-DE5FE9?style=for-the-badge&logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
-[![Inno Setup](https://img.shields.io/badge/Inno%20Setup-7-0078D7?style=for-the-badge&logo=windows&logoColor=white)](https://jrsoftware.org/isinfo.php)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=for-the-badge)](LICENSE)
-
-</div>
+[Español](#español) · [English](#english)
 
 ---
 
-## 🌟 Características Principales
+## Español
 
-- 🎙️ **Transcripción Inteligente**: Transcripción rápida local mediante `faster-whisper` (soporta GPU/CUDA o CPU) o vía API Cloud (Groq / OpenAI Whisper).
-- 🧠 **Detección de Momentos Virales**: Análisis semántico con LLMs para encontrar los momentos con mayor gancho, explicando el porqué y asignando puntuaciones de viralidad.
-- 💬 **Subtítulos Dinámicos ASS**: Generación automática de subtítulos estilo TikTok/Shorts sincronizados palabra por palabra con fuentes destacadas.
-- 📱 **Reencuadre Vertical 9:16**: Ajuste automático del formato horizontal a vertical listo para publicar en redes sociales.
-- 💻 **Doble Modo de Uso**: Panel visual intuitivo en **Streamlit** y modo automatizado por **Línea de Comandos (CLI)**.
-- 📦 **Listo para Distribución en Windows**: Scripts preparados para compilar a `.exe` (PyInstaller) y generar instaladores profesionales con **Inno Setup 7**.
+### Índice
 
----
+- [Descripción](#descripción)
+- [Características](#características)
+- [Requisitos](#requisitos)
+- [Instalación](#instalación)
+- [Uso: interfaz gráfica](#uso-interfaz-gráfica)
+- [Uso: línea de comandos](#uso-línea-de-comandos)
+- [Compilar ejecutable e instalador](#compilar-ejecutable-e-instalador)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [Pruebas](#pruebas)
+- [Licencia](#licencia)
 
-## 🚀 Requisitos Previos
+### Descripción
 
-- **Python**: Versión 3.8 o superior (se recomienda 3.10 – 3.13).
-- **FFmpeg**: Se gestiona automáticamente mediante `imageio-ffmpeg` (incluido en `requirements.txt`). Si lo prefieres, también puedes tener `ffmpeg` en el `PATH` del sistema.
-- **uv** *(Opcional pero muy recomendado)*: Gestor ultra rápido de entornos y paquetes de Python.
+**Auto-Clipper AI** transforma vídeos largos en **clips verticales** listos para TikTok, YouTube Shorts e Instagram Reels usando inteligencia artificial. El programa transcribe el audio, analiza la transcripción para localizar los momentos con más gancho, genera subtítulos animados y recorta en 9:16.
 
----
+Todo el procesamiento puede hacerse **en local** con `faster-whisper` y Ollama, o apoyarse en APIs en la nube (Groq u OpenAI) si se prefiere velocidad.
 
-## 📥 Instalación
+### Características
 
-### Opción 1: Con `uv` (Recomendado - Ultrarrápido)
+- 🎙️ **Transcripción rápida** con `faster-whisper` (GPU/CUDA o CPU) o por API (Groq / OpenAI Whisper).
+- 🧠 **Detección de momentos virales** con LLM: explica el porqué de cada corte y le asigna una puntuación de viralidad.
+- 💬 **Subtítulos ASS dinámicos** estilo TikTok, sincronizados palabra por palabra y con fuentes destacadas.
+- 📱 **Reencuadre vertical 9:16** automático desde el formato horizontal.
+- 💻 **Doble modo**: panel visual en Streamlit y modo automatizado por línea de comandos.
+- 📦 **Listo para Windows**: scripts para compilar a `.exe` con PyInstaller y generar un instalador con Inno Setup 7.
+
+### Requisitos
+
+- **Python 3.8+** (recomendado 3.10 – 3.13).
+- **FFmpeg**: se gestiona solo mediante `imageio-ffmpeg`, incluido en `requirements.txt`. También puedes tener `ffmpeg` en el `PATH`.
+- **uv** (opcional pero recomendado): gestor rápido de entornos y paquetes.
+
+### Instalación
+
+**Opción 1 — con `uv` (recomendada)**
 
 ```bash
-# 1. Clona el repositorio
 git clone https://github.com/alberto2005-coder/auto-clipper-ai.git
 cd auto-clipper-ai
-
-# 2. Crea el entorno virtual
 uv venv
-
-# 3. Instala las dependencias
 uv pip install -r requirements.txt
 ```
 
-### Opción 2: Con `pip` estándar
+**Opción 2 — con `pip`**
 
 ```bash
-# 1. Clona el repositorio
 git clone https://github.com/alberto2005-coder/auto-clipper-ai.git
 cd auto-clipper-ai
-
-# 2. Crea un entorno virtual
 python -m venv .venv
 
-# 3. Activa el entorno
-# En Windows (PowerShell):
+# Windows (PowerShell)
 .venv\Scripts\Activate.ps1
-# En Linux/macOS:
+# Linux / macOS
 source .venv/bin/activate
 
-# 4. Instala las dependencias
 pip install -r requirements.txt
 ```
 
----
+### Uso: interfaz gráfica
 
-## 🖥️ Uso de la Aplicación
+En Windows, haz doble clic en **`ejecutar.bat`**. El script activa el entorno virtual, comprueba las dependencias, ofrece crear un acceso directo con el icono oficial y abre la interfaz en el navegador (`http://localhost:8501`).
 
-### 1. Interfaz Gráfica (Streamlit)
-
-La forma más sencilla en Windows es hacer doble clic sobre **`ejecutar.bat`**. Este script:
-1. Detecta y activa automáticamente el entorno virtual (`.venv`).
-2. Comprueba las dependencias necesarias.
-3. Te ofrece crear un acceso directo con el icono oficial en el escritorio.
-4. Abre la interfaz visual en tu navegador (`http://localhost:8501`).
-
-Si prefieres lanzarlo desde la terminal:
+Desde la terminal:
 
 ```bash
-# Con el entorno virtual activado:
 streamlit run gui.py
 ```
 
-#### Funcionalidades del panel:
-- Subir videos locales o indicar rutas en disco.
-- Seleccionar tamaño del modelo de Whisper (`tiny`, `base`, `small`, `medium`, `large-v3`).
-- Elegir proveedor de IA (Ollama local, Groq o OpenAI).
+El panel permite:
+
+- Subir vídeos locales o indicar rutas en disco.
+- Elegir el tamaño del modelo de Whisper (`tiny`, `base`, `small`, `medium`, `large-v3`).
+- Elegir proveedor de IA: Ollama local, Groq u OpenAI.
 - Previsualizar los cortes y descargar los clips en 9:16.
 
----
-
-### 2. Línea de Comandos (CLI)
-
-Ideal para procesamiento por lotes o automatización en scripts:
+### Uso: línea de comandos
 
 ```bash
 python main.py ruta/del/video.mp4 --output_dir clips_salida
 ```
 
-#### Parámetros disponibles:
-
-| Parámetro | Descripción | Valor por Defecto |
+| Parámetro | Descripción | Valor por defecto |
 |---|---|---|
-| `video_path` | Ruta del video original de entrada | *(Obligatorio)* |
-| `--output_dir` | Directorio de salida para los clips | `output_clips` |
-| `--model` | Modelo de Whisper (`tiny`, `base`, `small`, `medium`) | `small` |
-| `--lang` | Código ISO del idioma del video | `es` |
+| `video_path` | Vídeo de entrada | *(obligatorio)* |
+| `--output_dir` | Carpeta de salida de los clips | `output_clips` |
+| `--model` | Modelo Whisper (`tiny`, `base`, `small`, `medium`) | `small` |
+| `--lang` | Código ISO del idioma del vídeo | `es` |
 | `--provider` | Proveedor del LLM (`ollama`, `groq`, `openai`) | `ollama` |
-| `--api_url` | URL de la API del proveedor LLM | `http://localhost:11434/api/generate` |
-| `--api_key` | Clave API (para Groq u OpenAI) | `None` / Var. Entorno |
-| `--llm_model` | Nombre del modelo LLM a consultar | `llama3` / `llama-3.3-70b-versatile` |
+| `--api_url` | URL de la API del LLM | `http://localhost:11434/api/generate` |
+| `--api_key` | Clave API (Groq u OpenAI) | `None` / variable de entorno |
+| `--llm_model` | Modelo del LLM | `llama3` / `llama-3.3-70b-versatile` |
 
-#### Ejemplos CLI:
+**Con Ollama (100 % local y gratis)**
 
-**Con Ollama (100% Local y Gratuito):**
 ```bash
 python main.py podcast.mp4 --output_dir clips --provider ollama --llm_model llama3
 ```
 
-**Con Groq (Ultrarrápido en la Nube):**
+**Con Groq (nube, muy rápido)**
+
 ```bash
 python main.py podcast.mp4 --output_dir clips --provider groq --api_key TU_GROQ_API_KEY
 ```
 
----
+### Compilar ejecutable e instalador
 
-## 🏗️ Compilación de Ejecutable e Instalador (Windows)
+**Paso 1 — generar el `.exe`**
 
-Este repositorio incluye todo lo necesario para compilar y empaquetar la aplicación como un programa de Windows:
-
-### Paso 1: Generar el Ejecutable (`.exe`)
-Ejecuta el script de compilación (desde la terminal o con doble clic):
 ```cmd
 scripts\crear_exe.bat
 ```
-- Utiliza **PyInstaller** con una configuración optimizada y portable ([scripts/run_gui.spec](scripts/run_gui.spec)).
-- Empaqueta el paquete modular `src/autoclipper` y los recursos de `assets/`.
-- Genera la carpeta distribuible con todas las librerías en `dist\run_gui\`.
 
-### Paso 2: Crear el Instalador con Inno Setup 7
-1. Abre [installer/instalador.iss](installer/instalador.iss) en **Inno Setup 7**.
-2. Haz clic en **Compile** (`Ctrl + F9`).
-3. Se generará el instalador `dist\Instalador_AutoClipperAI.exe` con:
-   - Asistente moderno y redimensionable (`WizardStyle=modern`).
-   - Soporte para arquitecturas de 64 bits (`x64compatible`).
-   - Acceso directo en el Escritorio y Menú Inicio con icono oficial ([assets/logo.ico](assets/logo.ico)).
-   - Soporte multilingüe (Español e Inglés).
-   - Desinstalador integrado.
+Usa **PyInstaller** con la configuración de `scripts/run_gui.spec`, empaqueta `src/autoclipper` y los recursos de `assets/`, y deja la distribución en `dist\run_gui\`.
 
----
+**Paso 2 — crear el instalador**
 
-## 📂 Estructura del Repositorio
+1. Abre `installer/instalador.iss` en **Inno Setup 7**.
+2. Pulsa **Compile** (`Ctrl + F9`).
+3. Se genera `dist\Instalador_AutoClipperAI.exe` con asistente moderno, soporte de 64 bits, accesos directos con el icono oficial, varios idiomas (español e inglés) y desinstalador.
+
+### Estructura del repositorio
 
 ```text
 auto-clipper-ai/
 ├── .streamlit/             # Configuración del servidor y temas de Streamlit
-├── assets/                 # Recursos gráficos (iconos, logos)
+├── assets/
 │   └── logo.ico
-├── installer/              # Archivos de empaquetado para distribución
-│   └── instalador.iss      # Script del instalador para Inno Setup 7
-├── scripts/                # Scripts de automatización y compilación
-│   ├── crear_acceso.ps1    # Generador de acceso directo en escritorio
+├── installer/
+│   └── instalador.iss      # Script de Inno Setup 7
+├── scripts/
+│   ├── crear_acceso.ps1    # Generador de acceso directo
 │   ├── crear_exe.bat       # Compilador a ejecutable portable
-│   └── run_gui.spec        # Especificación de empaquetado PyInstaller
-├── src/                    # Código fuente del paquete principal
+│   └── run_gui.spec        # Especificación de PyInstaller
+├── src/
 │   └── autoclipper/
-│       ├── __init__.py     # Exportaciones principales del paquete
-│       ├── analyzer.py     # Lógica de análisis de transcripción y LLMs
-│       ├── subtitle_generator.py # Generación de subtítulos dinámicos ASS
-│       ├── transcriber.py  # Extracción de audio y Whisper STT
-│       └── video_editor.py # Edición, reencuadre vertical 9:16 y mezcla
-├── tests/                  # Pruebas unitarias y de integración
-│   ├── __init__.py
+│       ├── analyzer.py            # Análisis de transcripción y LLM
+│       ├── subtitle_generator.py  # Subtítulos ASS
+│       ├── transcriber.py         # Extracción de audio y Whisper
+│       └── video_editor.py        # Reencuadre 9:16 y mezcla
+├── tests/
 │   └── test_analyzer_retry.py
-├── .gitignore              # Reglas de exclusión para Git
-├── ejecutar.bat            # Lanzador rápido raíz en 1 clic
-├── gui.py                  # Interfaz gráfica interactiva (Streamlit)
-├── LICENSE                 # Licencia GPL-3.0
-├── main.py                 # Punto de entrada para el modo CLI
-├── packages.txt            # Dependencias del sistema (Streamlit Cloud / Debian)
-├── README.md               # Documentación oficial del proyecto
-├── requirements.txt        # Dependencias de Python
-├── run_gui.py              # Bootstrap del ejecutable compilado
-└── setup.py                # Instalación como paquete de Python (src-layout)
+├── ejecutar.bat            # Lanzador en un clic
+├── gui.py                  # Interfaz Streamlit
+├── main.py                 # Entrada de la CLI
+├── packages.txt            # Dependencias del sistema
+├── requirements.txt
+├── run_gui.py              # Bootstrap del ejecutable
+├── setup.py
+├── LICENSE                 # GPL-3.0
+└── README.md
 ```
 
----
-
-## 🧪 Pruebas
-
-Para ejecutar las pruebas del sistema de análisis y tolerancia a fallos del LLM:
+### Pruebas
 
 ```bash
 python tests/test_analyzer_retry.py
 ```
 
----
+Comprueba el motor de análisis y la tolerancia a fallos del LLM.
 
-## 📄 Licencia
+### Licencia
 
-Este proyecto está bajo la **Licencia GPL-3.0**:
-- ✅ **Uso permitido**: Gratuito para uso personal, educativo, pruebas, desarrollo y también comercial.
-- 🔁 **Forks y modificaciones**: Permitidos; si distribuyes versiones modificadas, publica su código fuente bajo GPL-3.0 (copyleft).
-- 👤 **Atribución**: Conserva el crédito a **Alberto** y el enlace al repositorio original.
+**GPL-3.0**:
 
-Consulta el archivo [LICENSE](LICENSE) para consultar los términos completos.
+- ✅ **Uso**: gratuito para uso personal, educativo, pruebas, desarrollo y también comercial.
+- 🔁 **Forks y modificaciones**: permitidos; si distribuyes versiones modificadas, publica el código bajo GPL-3.0 (copyleft).
+- 👤 **Atribución**: conserva el crédito a **Alberto** y el enlace al repositorio original.
 
-
-# 🎬 Auto-Clipper AI
-
-**Turn long videos into viral vertical clips (TikTok, YouTube Shorts, Instagram Reels) using Artificial Intelligence.**
+Consulta [LICENSE](LICENSE) para los términos completos.
 
 ---
 
-## 🌟 Key Features
+## English
 
-* 🎙️ **Smart Transcription**: Fast local transcription powered by `faster-whisper` (supports GPU/CUDA or CPU) or via Cloud APIs (Groq / OpenAI Whisper).
-* 🧠 **Viral Moment Detection**: Semantic analysis using LLMs to pinpoint high-hook moments, complete with explanations and virality scores.
-* 💬 **Dynamic ASS Subtitles**: Automated TikTok/Shorts-style word-by-word synced subtitles with highlighted fonts.
-* 📱 **9:16 Vertical Reframing**: Automatic conversion from horizontal to vertical format, ready for social media.
-* 💻 **Dual Mode Support**: Intuitive **Streamlit** web dashboard and automated **Command Line Interface (CLI)**.
-* 📦 **Windows Distribution Ready**: Preconfigured scripts to compile to `.exe` (PyInstaller) and generate professional installers with **Inno Setup 7**.
+### Table of contents
 
----
+- [Overview](#overview)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [GUI usage](#gui-usage)
+- [CLI usage](#cli-usage)
+- [Building the executable and installer](#building-the-executable-and-installer)
+- [Repository structure](#repository-structure)
+- [Testing](#testing)
+- [License](#license)
 
-## 🚀 Prerequisites
+### Overview
 
-* **Python**: Version 3.8 or higher (3.10 – 3.13 recommended).
-* **FFmpeg**: Handled automatically via `imageio-ffmpeg` (included in `requirements.txt`). Alternatively, you can have `ffmpeg` installed in your system's `PATH`.
-* **uv** *(Optional but highly recommended)*: Ultra-fast Python package and environment manager.
+**Auto-Clipper AI** turns long videos into **vertical clips** ready for TikTok, YouTube Shorts and Instagram Reels using artificial intelligence. It transcribes the audio, analyzes the transcript to find the highest-hook moments, generates animated subtitles and reframes to 9:16.
 
----
+Everything can run **locally** with `faster-whisper` and Ollama, or lean on cloud APIs (Groq or OpenAI) when speed matters.
 
-## 📥 Installation
+### Features
 
-### Option 1: Using `uv` (Recommended - Ultra-fast)
+- 🎙️ **Fast transcription** with `faster-whisper` (GPU/CUDA or CPU) or cloud APIs (Groq / OpenAI Whisper).
+- 🧠 **Viral moment detection** with an LLM: explains each cut and assigns a virality score.
+- 💬 **Dynamic ASS subtitles** in TikTok style, synced word by word with highlighted fonts.
+- 📱 **9:16 vertical reframing** from horizontal footage.
+- 💻 **Dual mode**: Streamlit dashboard and an automated command-line mode.
+- 📦 **Windows-ready**: scripts to build a `.exe` with PyInstaller and an installer with Inno Setup 7.
+
+### Requirements
+
+- **Python 3.8+** (3.10 – 3.13 recommended).
+- **FFmpeg**: handled automatically via `imageio-ffmpeg`, bundled in `requirements.txt`. You can also have `ffmpeg` on the `PATH`.
+- **uv** (optional but recommended): fast environment and package manager.
+
+### Installation
+
+**Option 1 — with `uv` (recommended)**
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/alberto2005-coder/auto-clipper-ai.git
 cd auto-clipper-ai
-
-# 2. Create the virtual environment
 uv venv
-
-# 3. Install dependencies
 uv pip install -r requirements.txt
-
 ```
 
-### Option 2: Using standard `pip`
+**Option 2 — with `pip`**
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/alberto2005-coder/auto-clipper-ai.git
 cd auto-clipper-ai
-
-# 2. Create a virtual environment
 python -m venv .venv
 
-# 3. Activate the environment
-# On Windows (PowerShell):
+# Windows (PowerShell)
 .venv\Scripts\Activate.ps1
-# On Linux/macOS:
+# Linux / macOS
 source .venv/bin/activate
 
-# 4. Install dependencies
 pip install -r requirements.txt
-
 ```
 
----
+### GUI usage
 
-## 🖥️ Usage
+On Windows, double-click **`ejecutar.bat`**. The script activates the virtual environment, checks dependencies, offers to create a desktop shortcut with the official icon, and opens the dashboard in your browser (`http://localhost:8501`).
 
-### 1. Graphical User Interface (Streamlit)
-
-The easiest way on Windows is to double-click **`ejecutar.bat`**. This script:
-
-1. Automatically detects and activates the virtual environment (`.venv`).
-2. Checks for required dependencies.
-3. Offers to create a desktop shortcut with the official app icon.
-4. Launches the visual dashboard in your browser (`http://localhost:8501`).
-
-If you prefer launching from the terminal:
+From a terminal:
 
 ```bash
-# With the virtual environment activated:
 streamlit run gui.py
-
 ```
 
-#### Dashboard Features:
+The dashboard lets you:
 
-* Upload local video files or specify paths on disk.
-* Select Whisper model sizes (`tiny`, `base`, `small`, `medium`, `large-v3`).
-* Choose LLM providers (Local Ollama, Groq, or OpenAI).
-* Preview cut segments and download final 9:16 vertical clips.
+- Upload local videos or point at paths on disk.
+- Pick the Whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`).
+- Choose the AI provider: local Ollama, Groq or OpenAI.
+- Preview the cuts and download the 9:16 clips.
 
----
-
-### 2. Command Line Interface (CLI)
-
-Ideal for batch processing or pipeline scripting:
+### CLI usage
 
 ```bash
 python main.py path/to/video.mp4 --output_dir output_clips
-
 ```
 
-#### Available Parameters:
-
-| Parameter | Description | Default Value |
-| --- | --- | --- |
-| `video_path` | Path to the source input video | *(Required)* |
-| `--output_dir` | Directory where output clips are saved | `output_clips` |
-| `--model` | Whisper model size (`tiny`, `base`, `small`, `medium`) | `small` |
+| Parameter | Description | Default |
+|---|---|---|
+| `video_path` | Input video | *(required)* |
+| `--output_dir` | Output folder for clips | `output_clips` |
+| `--model` | Whisper model (`tiny`, `base`, `small`, `medium`) | `small` |
 | `--lang` | ISO language code of the video | `es` |
 | `--provider` | LLM provider (`ollama`, `groq`, `openai`) | `ollama` |
-| `--api_url` | LLM provider API endpoint URL | `http://localhost:11434/api/generate` |
-| `--api_key` | API Key (for Groq or OpenAI) | `None` / Environment Var |
-| `--llm_model` | LLM model name to query | `llama3` / `llama-3.3-70b-versatile` |
+| `--api_url` | LLM API endpoint | `http://localhost:11434/api/generate` |
+| `--api_key` | API key (Groq or OpenAI) | `None` / environment variable |
+| `--llm_model` | LLM model name | `llama3` / `llama-3.3-70b-versatile` |
 
-#### CLI Examples:
-
-**Using Ollama (100% Local and Free):**
+**With Ollama (100 % local and free)**
 
 ```bash
 python main.py podcast.mp4 --output_dir clips --provider ollama --llm_model llama3
-
 ```
 
-**Using Groq (Ultra-fast Cloud Inference):**
+**With Groq (very fast cloud inference)**
 
 ```bash
 python main.py podcast.mp4 --output_dir clips --provider groq --api_key YOUR_GROQ_API_KEY
-
 ```
 
----
+### Building the executable and installer
 
-## 🏗️ Building Executable & Installer (Windows)
-
-This repository includes everything required to package the app into a standalone Windows application:
-
-### Step 1: Build the Executable (`.exe`)
-
-Run the build script (via terminal or double-click):
+**Step 1 — build the `.exe`**
 
 ```cmd
 scripts\crear_exe.bat
-
 ```
 
-* Uses **PyInstaller** with an optimized, portable configuration ([scripts/run_gui.spec](https://www.google.com/search?q=scripts/run_gui.spec)).
-* Packages the `src/autoclipper` modular package and resources from `assets/`.
-* Generates the standalone distribution folder containing all libraries at `dist\run_gui\`.
+It runs **PyInstaller** with `scripts/run_gui.spec`, bundles `src/autoclipper` and the `assets/` resources, and leaves the distribution in `dist\run_gui\`.
 
-### Step 2: Create the Installer with Inno Setup 7
+**Step 2 — create the installer**
 
-1. Open [installer/instalador.iss](https://www.google.com/search?q=installer/instalador.iss) in **Inno Setup 7**.
+1. Open `installer/instalador.iss` in **Inno Setup 7**.
 2. Click **Compile** (`Ctrl + F9`).
-3. An installer executable `dist\Instalador_AutoClipperAI.exe` will be produced with:
-* Modern, resizable UI wizard (`WizardStyle=modern`).
-* 64-bit architecture support (`x64compatible`).
-* Desktop and Start Menu shortcuts using the official icon ([assets/logo.ico](https://www.google.com/search?q=assets/logo.ico)).
-* Multi-language support (Spanish and English).
-* Built-in uninstaller.
+3. This produces `dist\Instalador_AutoClipperAI.exe` with a modern wizard, 64-bit support, desktop and Start Menu shortcuts using the official icon, multi-language UI (Spanish and English) and a built-in uninstaller.
 
-
-
----
-
-## 📂 Repository Structure
+### Repository structure
 
 ```text
 auto-clipper-ai/
 ├── .streamlit/             # Streamlit server and theme configuration
-├── assets/                 # Graphical assets (icons, logos)
+├── assets/
 │   └── logo.ico
-├── installer/              # Distribution packaging files
-│   └── instalador.iss      # Inno Setup 7 installer script
-├── scripts/                # Automation and build scripts
+├── installer/
+│   └── instalador.iss      # Inno Setup 7 script
+├── scripts/
 │   ├── crear_acceso.ps1    # Desktop shortcut generator
 │   ├── crear_exe.bat       # Portable executable compiler
-│   └── run_gui.spec        # PyInstaller specification file
-├── src/                    # Main package source code
+│   └── run_gui.spec        # PyInstaller spec
+├── src/
 │   └── autoclipper/
-│       ├── __init__.py     # Core package exports
-│       ├── analyzer.py     # Transcript analysis and LLM logic
-│       ├── subtitle_generator.py # Dynamic ASS subtitle generator
-│       ├── transcriber.py  # Audio extraction and Whisper STT
-│       └── video_editor.py # Editing, 9:16 vertical reframing, and mixing
-├── tests/                  # Unit and integration tests
-│   ├── __init__.py
+│       ├── analyzer.py            # Transcript analysis and LLM logic
+│       ├── subtitle_generator.py  # ASS subtitles
+│       ├── transcriber.py         # Audio extraction and Whisper
+│       └── video_editor.py        # 9:16 reframing and mixing
+├── tests/
 │   └── test_analyzer_retry.py
-├── .gitignore              # Git ignore rules
-├── ejecutar.bat            # One-click root launcher
-├── gui.py                  # Interactive graphical dashboard (Streamlit)
-├── LICENSE                 # GPL-3.0 License
+├── ejecutar.bat            # One-click launcher
+├── gui.py                  # Streamlit dashboard
 ├── main.py                 # CLI entry point
-├── packages.txt            # System dependencies (Streamlit Cloud / Debian)
-├── README.md               # Official project documentation
-├── requirements.txt        # Python dependencies
+├── packages.txt            # System dependencies
+├── requirements.txt
 ├── run_gui.py              # Compiled executable bootstrap
-└── setup.py                # Python package setup (src-layout)
-
+├── setup.py
+├── LICENSE                 # GPL-3.0
+└── README.md
 ```
 
----
-
-## 🧪 Testing
-
-To run tests for the analysis engine and LLM fallback/retry mechanisms:
+### Testing
 
 ```bash
 python tests/test_analyzer_retry.py
-
 ```
 
----
+Covers the analysis engine and the LLM retry/fallback behavior.
 
-## 📄 License
+### License
 
-This project is licensed under the **GPL-3.0 License**:
+**GPL-3.0**:
 
-* ✅ **Permitted use**: Free for personal use, educational purposes, testing, development, and commercial use.
-* 🔁 **Forks and modifications**: Allowed; modified distributions must be open-sourced under the GPL-3.0 copyleft terms.
-* 👤 **Attribution**: Retain proper credit to **Alberto** and the link to the original repository.
+- ✅ **Use**: free for personal, educational, testing, development and commercial use.
+- 🔁 **Forks and modifications**: allowed; modified distributions must be released under GPL-3.0 (copyleft).
+- 👤 **Attribution**: keep the credit to **Alberto** and the link to the original repository.
 
-Refer to the [LICENSE](https://www.google.com/search?q=LICENSE) file for full terms and conditions.
+See [LICENSE](LICENSE) for the full terms.
